@@ -1,0 +1,22 @@
+# Dependencies
+/node_modules
+/venv
+__pycache__
+
+# Logs
+npm-debug.log
+yarn-error.log
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Environment Variables & Secrets (CRITICAL for security)
+.env
+.env.local
+
+# Build/Dist/Temp folders
+/build
+/dist
+/out
+/tmp
