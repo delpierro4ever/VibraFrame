@@ -172,7 +172,7 @@ export default function EventCodePage() {
   const textWNorm = tpl.text?.w ?? 0.82;
   const textHNorm = tpl.text?.h ?? 0.14;
 
-  // 👇 Make name font 3x smaller than before
+  // Make name font 3x smaller than before
   const textSizeBase = (tpl.text?.size ?? 44) / 3;
   const textSizeOut = textSizeBase * scaleToOut;
 
@@ -282,12 +282,24 @@ export default function EventCodePage() {
             setGenerating(false);
             return;
           }
+
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
           a.download = `${name.trim().toLowerCase().replace(/\s+/g, "-")}-${eventCode}.jpg`;
           a.click();
           URL.revokeObjectURL(url);
+
+          // ✅ Log download (non-blocking, safe)
+          fetch("/api/log-download", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              eventId: event?.eventId,
+              eventCode,
+            }),
+          }).catch(() => {});
+
           setGenerating(false);
         },
         "image/jpeg",
