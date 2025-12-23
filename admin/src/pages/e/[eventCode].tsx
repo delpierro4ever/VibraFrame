@@ -351,7 +351,7 @@ export default function EventCodePage() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Fonjio Peter"
+            placeholder="Enter your name"
             className="mt-2 mb-4 viro-input"
           />
 
@@ -391,7 +391,8 @@ export default function EventCodePage() {
           </div>
 
           <div className="mt-6 text-xs text-[var(--viro-muted)]">
-            Powered by <span className="text-white">Alita Automations</span>
+            Powered by <span className="text-white">Alita Automations</span> <br />
+            Contact @ +237 6725 229 13
           </div>
         </aside>
 
