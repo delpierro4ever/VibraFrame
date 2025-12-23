@@ -1,4 +1,4 @@
-import { Event } from "@/types/event";
+import type { Event } from "@/types/event";
 import Link from "next/link";
 
 type Props = {
@@ -10,21 +10,21 @@ export default function EventCard({ event }: Props) {
     <div className="bg-neutral-900 rounded-xl overflow-hidden shadow hover:shadow-lg transition">
       <img
         src={event.thumbnail ?? ""}
-        alt={event.name}
+        alt={event.name ?? "Event thumbnail"}
         className="h-40 w-full object-cover"
       />
 
       <div className="p-4 space-y-2">
         <h3 className="text-lg font-semibold text-white">
-          {event.name}
+          {event.name ?? "Untitled Event"}
         </h3>
 
         <p className="text-sm text-neutral-400">
-          Code: <span className="font-mono">{event.code}</span>
+          Code: <span className="font-mono">{event.event_code ?? "—"}</span>
         </p>
 
         <p className="text-sm text-neutral-400">
-          Posters Generated: {event.postersGenerated}
+          Posters Generated: {event.postersGenerated ?? 0}
         </p>
 
         <div className="flex gap-2 pt-2">
@@ -35,7 +35,10 @@ export default function EventCard({ event }: Props) {
             Edit
           </Link>
 
-          <button className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white text-sm py-2 rounded-lg">
+          <button
+            type="button"
+            className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white text-sm py-2 rounded-lg"
+          >
             Duplicate
           </button>
         </div>
