@@ -14,4 +14,6 @@ export type Event = {
   template?: unknown;
   published?: boolean | null;
   created_at?: string | null;
+
+   thumbnail?: string | null;
 };
