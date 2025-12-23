@@ -390,7 +390,7 @@ export default function EventCodePage() {
             <div>• Perfect for IG / WhatsApp</div>
           </div>
 
-          <div className="mt-6 text-xs text-[var(--viro-muted)]">
+          <div className="mt-6 text-xs text-[var(--viro-muted)] text-center">
             Powered by <span className="text-white">Alita Automations</span> <br />
             Contact @ +237 6725 229 13
           </div>
