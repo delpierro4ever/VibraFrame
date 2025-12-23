@@ -79,7 +79,13 @@ async function loadImage(src: string) {
 export default function EventCodePage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // shared file input
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // preview box ref (we measure its real width)
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [previewPx, setPreviewPx] = useState(420);
 
   const eventCode = useMemo(() => {
     const q = router.query.eventCode;
@@ -94,6 +100,7 @@ export default function EventCodePage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
+  // Fetch event
   useEffect(() => {
     if (!router.isReady || !eventCode) return;
 
@@ -127,6 +134,22 @@ export default function EventCodePage() {
     };
   }, [router.isReady, eventCode]);
 
+  // Measure preview size responsively
+  useEffect(() => {
+    const el = previewRef.current;
+    if (!el) return;
+
+    const ro = new ResizeObserver(() => {
+      const w = el.getBoundingClientRect().width;
+      // keep it sane
+      setPreviewPx(Math.max(240, Math.min(420, Math.round(w))));
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Cleanup photo object URL
   useEffect(() => {
     return () => {
       if (photoUrl) URL.revokeObjectURL(photoUrl);
@@ -149,11 +172,13 @@ export default function EventCodePage() {
   const textWNorm = tpl.text?.w ?? 0.82;
   const textHNorm = tpl.text?.h ?? 0.14;
 
-  const textSizeBase = (tpl.text?.size ?? 44) * 0.78;
+  // 👇 Make name font 3x smaller than before
+  const textSizeBase = (tpl.text?.size ?? 44) / 3;
   const textSizeOut = textSizeBase * scaleToOut;
 
   const textColor = tpl.text?.color ?? "#FFD54F";
 
+  // Compute output positions (1080 space) + clamp
   let photoXOut = xNormPhoto * OUT_W;
   let photoYOut = yNormPhoto * OUT_H;
 
@@ -164,23 +189,25 @@ export default function EventCodePage() {
   const textXOut = xNormText * OUT_W;
   const textYOut = yNormText * OUT_H;
 
-  // Preview math remains 420-based; container is responsive (aspect-square)
-  const previewSize = 420;
-  const previewScale = previewSize / OUT_W;
+  // Responsive preview scale based on real previewPx
+  const previewScale = previewPx / OUT_W;
 
+  // Use % for positions so it stays correct even when the preview resizes
   const photoStyle: React.CSSProperties = {
-    left: photoXOut * previewScale - (photoSizeOut * previewScale) / 2,
-    top: photoYOut * previewScale - (photoSizeOut * previewScale) / 2,
+    left: `${(photoXOut / OUT_W) * 100}%`,
+    top: `${(photoYOut / OUT_H) * 100}%`,
+    transform: "translate(-50%, -50%)",
     width: photoSizeOut * previewScale,
     height: photoSizeOut * previewScale,
     borderRadius: photoShape === "circle" ? "9999px" : "12px",
   };
 
   const textStyle: React.CSSProperties = {
-    left: textXOut * previewScale - (textWNorm * OUT_W * previewScale) / 2,
-    top: textYOut * previewScale - (textHNorm * OUT_H * previewScale) / 2,
-    width: textWNorm * OUT_W * previewScale,
-    height: textHNorm * OUT_H * previewScale,
+    left: `${(textXOut / OUT_W) * 100}%`,
+    top: `${(textYOut / OUT_H) * 100}%`,
+    transform: "translate(-50%, -50%)",
+    width: textWNorm * previewPx,
+    height: textHNorm * previewPx,
     fontSize: textSizeOut * previewScale,
     color: textColor,
     letterSpacing: "0.5px",
@@ -237,7 +264,9 @@ export default function EventCodePage() {
 
       ctx.clip();
 
-      coverDraw(ctx, userImg, photoXOut - r, photoYOut - r, photoSizeOut, photoSizeOut);
+      const dx = photoXOut - r;
+      const dy = photoYOut - r;
+      coverDraw(ctx, userImg, dx, dy, photoSizeOut, photoSizeOut);
 
       ctx.restore();
 
@@ -270,14 +299,10 @@ export default function EventCodePage() {
     }
   };
 
-  const canGenerate =
-    !!event?.backgroundSignedUrl && !!name.trim() && !!photoUrl && !generating && !loading && !err;
-
   return (
     <>
       <Head>
         <title>ViroEvent | {eventCode}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
       <canvas ref={canvasRef} className="hidden" />
@@ -293,173 +318,134 @@ export default function EventCodePage() {
         }}
       />
 
-      <main className="min-h-dvh bg-[var(--viro-bg)] text-white">
-        {/* padding bottom so content doesn't hide behind sticky bar on mobile */}
-        <div className="mx-auto w-full max-w-5xl px-4 py-4 pb-28 sm:px-6 sm:py-6 lg:pb-6">
-          {/* Top status */}
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm text-[var(--viro-muted)]">Event</div>
-              <div className="text-base font-semibold">
-                <span className="text-[var(--viro-primary)]">{eventCode || "—"}</span>
-              </div>
-              {loading ? (
-                <div className="mt-1 text-xs text-[var(--viro-muted)]">Loading…</div>
-              ) : err ? (
-                <div className="mt-1 text-xs text-[var(--viro-danger)]">{err}</div>
-              ) : (
-                <div className="mt-1 text-xs text-emerald-400">Ready ✅</div>
-              )}
+      {/* Mobile-first layout */}
+      <main className="min-h-screen text-white flex flex-col lg:flex-row">
+        {/* LEFT PANEL */}
+        <aside className="w-full lg:w-[380px] p-4 lg:p-6 viro-card m-4 lg:m-6">
+          <div className="text-sm mb-4">
+            <div className="font-semibold">
+              Event: <span className="text-[var(--viro-primary)]">{eventCode}</span>
             </div>
-
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs px-3 py-1 rounded-full border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)]">
-                1080×1080
-              </span>
-              <span className="text-xs px-3 py-1 rounded-full border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)]">
-                IG / WhatsApp
-              </span>
-            </div>
+            {loading ? (
+              <div className="text-[var(--viro-muted)]">Loading…</div>
+            ) : err ? (
+              <div className="text-[var(--viro-danger)]">{err}</div>
+            ) : (
+              <div className="text-emerald-400">Ready ✅</div>
+            )}
           </div>
 
-          {/* Layout */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr] lg:gap-6">
-            {/* PREVIEW */}
-            <section className="order-1 lg:order-2">
-              <div className="viro-card p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="text-sm text-[var(--viro-muted)]">Preview</div>
-                  <span className="text-xs px-3 py-1 rounded-full border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)]">
-                    Live
-                  </span>
-                </div>
+          <label className="text-sm text-[var(--viro-muted)]">Your name</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Fonjio Peter"
+            className="mt-2 mb-4 viro-input"
+          />
 
-                <div className="mx-auto w-full max-w-[420px]">
-                  <div className="relative aspect-square w-full rounded-xl overflow-hidden shadow-2xl bg-black/20">
-                    {event?.backgroundSignedUrl ? (
-                      <img
-                        src={event.backgroundSignedUrl}
-                        alt="background"
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-black/20" />
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={pickPhoto}
-                      className="absolute overflow-hidden bg-black/30"
-                      style={photoStyle}
-                      aria-label="Upload photo"
-                      title="Tap to upload photo"
-                    >
-                      <div
-                        className="absolute inset-0"
-                        style={{
-                          borderRadius: photoShape === "circle" ? "9999px" : "12px",
-                          border: `2px solid ${textColor}`,
-                          boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
-                        }}
-                      />
-
-                      {photoUrl ? (
-                        <img src={photoUrl} alt="photo" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white/80 text-xs">
-                          Tap to upload
-                        </div>
-                      )}
-                    </button>
-
-                    <div
-                      className="absolute flex items-center justify-center font-extrabold text-center"
-                      style={textStyle}
-                    >
-                      {name.trim() || "YOUR NAME"}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 text-center text-xs text-[var(--viro-muted)]">
-                  Tap the photo circle to upload. Fill your name below.
-                </div>
-              </div>
-            </section>
-
-            {/* CONTROLS */}
-            <aside className="order-2 lg:order-1">
-              <div className="viro-card p-4 sm:p-6">
-                <label className="text-sm text-[var(--viro-muted)]">Your name</label>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Fonjio Peter"
-                  className="mt-2 mb-4 viro-input w-full"
-                />
-
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-[var(--viro-muted)]">Upload photo</label>
-                  <button
-                    type="button"
-                    className="text-xs text-[var(--viro-primary)] hover:opacity-80"
-                    onClick={pickPhoto}
-                  >
-                    Choose file
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={pickPhoto}
-                  className="mt-2 mb-4 w-full viro-card p-4 border border-[var(--viro-border)] hover:opacity-90 transition"
-                >
-                  <div className="text-sm font-semibold">Tap to upload</div>
-                  <div className="text-xs text-[var(--viro-muted)] mt-1">
-                    Tip: use a clear face photo for best results.
-                  </div>
-                </button>
-
-                {/* Desktop primary action (mobile uses sticky bar) */}
-                <button
-                  onClick={generateAndDownload}
-                  disabled={!canGenerate}
-                  className="hidden lg:block w-full h-12 viro-btn viro-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {generating ? "Generating..." : "Generate & Download"}
-                </button>
-
-                <div className="mt-4 text-xs text-[var(--viro-muted)] space-y-1">
-                  <div>• Output: 1080×1080 JPG</div>
-                  <div>• Perfect for IG / WhatsApp</div>
-                </div>
-              </div>
-
-              {/* Footer credit (shows under controls on desktop) */}
-              <p className="mt-3 text-center text-xs text-[var(--viro-muted)] lg:text-left">
-                Powered by <span className="font-semibold">Alita Automations</span>
-              </p>
-            </aside>
-          </div>
-
-          {/* Footer credit (mobile center, near page bottom) */}
-          <p className="mt-6 text-center text-xs text-[var(--viro-muted)] lg:hidden">
-            Powered by <span className="font-semibold">Alita Automations</span>
-          </p>
-        </div>
-
-        {/* Sticky bottom action bar (MOBILE ONLY) */}
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--viro-border)] bg-[var(--viro-bg)]/90 p-3 backdrop-blur lg:hidden">
-          <div className="mx-auto w-full max-w-5xl px-1">
+          <div className="flex items-center justify-between">
+            <label className="text-sm text-[var(--viro-muted)]">Upload photo</label>
             <button
-              onClick={generateAndDownload}
-              disabled={!canGenerate}
-              className="w-full h-12 rounded-xl bg-[var(--viro-primary)] font-semibold text-black disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+              className="text-xs text-[var(--viro-primary)] hover:opacity-80"
+              onClick={pickPhoto}
             >
-              {generating ? "Generating..." : "Generate & Download"}
+              Choose file
             </button>
           </div>
-        </div>
+
+          <button
+            type="button"
+            onClick={pickPhoto}
+            className="mt-2 mb-4 w-full viro-card p-4 border border-[var(--viro-border)] hover:opacity-90 transition"
+          >
+            <div className="text-sm font-semibold">Tap to upload</div>
+            <div className="text-xs text-[var(--viro-muted)] mt-1">
+              Tip: use a clear face photo for best results.
+            </div>
+          </button>
+
+          <button
+            onClick={generateAndDownload}
+            disabled={generating || !name.trim() || !photoUrl || !event?.backgroundSignedUrl}
+            className="w-full viro-btn viro-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generating ? "Generating..." : "Generate & Download"}
+          </button>
+
+          <div className="mt-4 text-xs text-[var(--viro-muted)] space-y-1">
+            <div>• Output: 1080×1080 JPG</div>
+            <div>• Perfect for IG / WhatsApp</div>
+          </div>
+
+          <div className="mt-6 text-xs text-[var(--viro-muted)]">
+            Powered by <span className="text-white">Alita Automations</span>
+          </div>
+        </aside>
+
+        {/* RIGHT PANEL */}
+        <section className="flex-1 flex items-start lg:items-center justify-center p-4 lg:p-8">
+          <div className="w-full max-w-[560px] viro-card p-4 lg:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm text-[var(--viro-muted)]">Preview</div>
+              <span className="text-xs px-3 py-1 rounded-full border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)]">
+                Live
+              </span>
+            </div>
+
+            {/* Responsive square preview */}
+            <div
+              ref={previewRef}
+              className="relative w-full aspect-square max-w-[420px] mx-auto rounded-xl overflow-hidden shadow-2xl bg-black/20"
+            >
+              {event?.backgroundSignedUrl ? (
+                <img
+                  src={event.backgroundSignedUrl}
+                  alt="background"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-black/20" />
+              )}
+
+              {/* Photo */}
+              <button
+                type="button"
+                onClick={pickPhoto}
+                className="absolute overflow-hidden bg-black/30"
+                style={photoStyle}
+                aria-label="Upload photo"
+                title="Tap to upload photo"
+              >
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    borderRadius: photoShape === "circle" ? "9999px" : "12px",
+                    border: `2px solid ${textColor}`,
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+                  }}
+                />
+
+                {photoUrl ? (
+                  <img src={photoUrl} alt="photo" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white/80 text-xs">
+                    Tap to upload
+                  </div>
+                )}
+              </button>
+
+              {/* Name */}
+              <div className="absolute flex items-center justify-center font-extrabold text-center" style={textStyle}>
+                {name.trim() || "YOUR NAME"}
+              </div>
+            </div>
+
+            <div className="mt-4 text-xs text-[var(--viro-muted)] text-center">
+              Tap the photo circle to upload. Fill your name on the left.
+            </div>
+          </div>
+        </section>
       </main>
     </>
   );
