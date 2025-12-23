@@ -455,7 +455,7 @@ export default function EventCodePage() {
             </div>
 
             <div className="mt-4 text-xs text-[var(--viro-muted)] text-center">
-              Tap the photo circle to upload. Fill your name on the left.
+              Tap the photo circle to upload.
             </div>
           </div>
         </section>
