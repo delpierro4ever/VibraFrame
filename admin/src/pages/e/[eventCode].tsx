@@ -1,4 +1,4 @@
-// src/pages/e/[eventCode].tsx
+// admin/src/pages/e/[eventCode].tsx
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -79,8 +79,6 @@ async function loadImage(src: string) {
 export default function EventCodePage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // One shared file input (both controls + preview circle click trigger this)
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const eventCode = useMemo(() => {
@@ -96,7 +94,6 @@ export default function EventCodePage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
-  // Fetch event
   useEffect(() => {
     if (!router.isReady || !eventCode) return;
 
@@ -130,7 +127,6 @@ export default function EventCodePage() {
     };
   }, [router.isReady, eventCode]);
 
-  // Cleanup photo object URL
   useEffect(() => {
     return () => {
       if (photoUrl) URL.revokeObjectURL(photoUrl);
@@ -139,7 +135,6 @@ export default function EventCodePage() {
 
   const tpl = event?.template ?? {};
 
-  // Treat x/y as normalized (0..1). Always render in 1080x1080 output space.
   const baseW = tpl.canvas?.width ?? OUT_W;
   const scaleToOut = baseW ? OUT_W / baseW : 1;
 
@@ -154,13 +149,11 @@ export default function EventCodePage() {
   const textWNorm = tpl.text?.w ?? 0.82;
   const textHNorm = tpl.text?.h ?? 0.14;
 
-  // quick fix: reduce name font a bit (auto-fit later)
   const textSizeBase = (tpl.text?.size ?? 44) * 0.78;
   const textSizeOut = textSizeBase * scaleToOut;
 
   const textColor = tpl.text?.color ?? "#FFD54F";
 
-  // Compute in OUTPUT space (1080x1080)
   let photoXOut = xNormPhoto * OUT_W;
   let photoYOut = yNormPhoto * OUT_H;
 
@@ -171,7 +164,7 @@ export default function EventCodePage() {
   const textXOut = xNormText * OUT_W;
   const textYOut = yNormText * OUT_H;
 
-  // Preview uses same 420 coordinate math; container scales visually (aspect-square)
+  // Preview math remains 420-based; container is responsive (aspect-square)
   const previewSize = 420;
   const previewScale = previewSize / OUT_W;
 
@@ -194,9 +187,7 @@ export default function EventCodePage() {
     textShadow: "0 2px 14px rgba(0,0,0,0.55)",
   };
 
-  const pickPhoto = () => {
-    fileInputRef.current?.click();
-  };
+  const pickPhoto = () => fileInputRef.current?.click();
 
   const onPhotoFile = (file: File) => {
     if (photoUrl) URL.revokeObjectURL(photoUrl);
@@ -216,7 +207,6 @@ export default function EventCodePage() {
       canvas.width = OUT_W;
       canvas.height = OUT_H;
 
-      // Background
       const bgSrc =
         event.backgroundSignedUrl +
         (event.backgroundSignedUrl.includes("?") ? "&" : "?") +
@@ -226,7 +216,6 @@ export default function EventCodePage() {
       const bgImg = await loadImage(bgSrc);
       ctx.drawImage(bgImg, 0, 0, OUT_W, OUT_H);
 
-      // Photo (clip + cover)
       const userImg = await loadImage(photoUrl);
 
       ctx.save();
@@ -248,22 +237,16 @@ export default function EventCodePage() {
 
       ctx.clip();
 
-      const dx = photoXOut - r;
-      const dy = photoYOut - r;
-      const dw = photoSizeOut;
-      const dh = photoSizeOut;
-      coverDraw(ctx, userImg, dx, dy, dw, dh);
+      coverDraw(ctx, userImg, photoXOut - r, photoYOut - r, photoSizeOut, photoSizeOut);
 
       ctx.restore();
 
-      // Name text
       ctx.font = `800 ${Math.round(textSizeOut)}px Arial, sans-serif`;
       ctx.fillStyle = textColor;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(name.trim().toUpperCase(), textXOut, textYOut);
 
-      // Download
       canvas.toBlob(
         (blob) => {
           if (!blob) {
@@ -299,7 +282,6 @@ export default function EventCodePage() {
 
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Hidden shared file input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -311,9 +293,8 @@ export default function EventCodePage() {
         }}
       />
 
-      {/* Page */}
       <main className="min-h-dvh bg-[var(--viro-bg)] text-white">
-        {/* Add bottom padding on mobile so content doesn't hide behind sticky bar */}
+        {/* padding bottom so content doesn't hide behind sticky bar on mobile */}
         <div className="mx-auto w-full max-w-5xl px-4 py-4 pb-28 sm:px-6 sm:py-6 lg:pb-6">
           {/* Top status */}
           <div className="mb-4 flex items-start justify-between gap-3">
@@ -365,7 +346,6 @@ export default function EventCodePage() {
                       <div className="absolute inset-0 bg-black/20" />
                     )}
 
-                    {/* Photo circle */}
                     <button
                       type="button"
                       onClick={pickPhoto}
@@ -392,7 +372,6 @@ export default function EventCodePage() {
                       )}
                     </button>
 
-                    {/* Name */}
                     <div
                       className="absolute flex items-center justify-center font-extrabold text-center"
                       style={textStyle}
@@ -441,7 +420,7 @@ export default function EventCodePage() {
                   </div>
                 </button>
 
-                {/* Desktop button (mobile uses sticky bar) */}
+                {/* Desktop primary action (mobile uses sticky bar) */}
                 <button
                   onClick={generateAndDownload}
                   disabled={!canGenerate}
@@ -453,11 +432,20 @@ export default function EventCodePage() {
                 <div className="mt-4 text-xs text-[var(--viro-muted)] space-y-1">
                   <div>• Output: 1080×1080 JPG</div>
                   <div>• Perfect for IG / WhatsApp</div>
-                  <div>• Auto-fit text is next (if needed).</div>
                 </div>
               </div>
+
+              {/* Footer credit (shows under controls on desktop) */}
+              <p className="mt-3 text-center text-xs text-[var(--viro-muted)] lg:text-left">
+                Powered by <span className="font-semibold">Alita Automations</span>
+              </p>
             </aside>
           </div>
+
+          {/* Footer credit (mobile center, near page bottom) */}
+          <p className="mt-6 text-center text-xs text-[var(--viro-muted)] lg:hidden">
+            Powered by <span className="font-semibold">Alita Automations</span>
+          </p>
         </div>
 
         {/* Sticky bottom action bar (MOBILE ONLY) */}
@@ -470,9 +458,6 @@ export default function EventCodePage() {
             >
               {generating ? "Generating..." : "Generate & Download"}
             </button>
-            <div className="mt-2 text-center text-[11px] text-[var(--viro-muted)]">
-              Make sure your name + photo are set before generating.
-            </div>
           </div>
         </div>
       </main>
