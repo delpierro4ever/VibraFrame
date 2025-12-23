@@ -16,4 +16,5 @@ export type Event = {
   created_at?: string | null;
 
    thumbnail?: string | null;
+   postersGenerated?: number | null;
 };

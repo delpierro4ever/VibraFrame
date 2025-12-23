@@ -9,7 +9,7 @@ export default function EventCard({ event }: Props) {
   return (
     <div className="bg-neutral-900 rounded-xl overflow-hidden shadow hover:shadow-lg transition">
       <img
-        src={event.thumbnail}
+        src={event.thumbnail ?? ""}
         alt={event.name}
         className="h-40 w-full object-cover"
       />
