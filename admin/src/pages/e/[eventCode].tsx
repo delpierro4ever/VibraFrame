@@ -100,6 +100,49 @@ export default function EventCodePage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
+  // ✅ Share state
+  const [didDownload, setDidDownload] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const shareLink = useMemo(() => {
+    const origin =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_APP_URL || "";
+    return `${origin}/e/${eventCode}`;
+  }, [eventCode]);
+
+  const shareText = useMemo(() => {
+    const n = name.trim() ? `(${name.trim()}) ` : "";
+    return `🇨🇲🦁 Let’s support the Lions! ${n}Create your FREE custom AFCON poster with your photo + name in seconds.\nTap here: ${shareLink}`;
+  }, [name, shareLink]);
+
+  const whatsappHref = useMemo(() => {
+    return `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+  }, [shareText]);
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // fallback
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = shareLink;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch {
+        setCopied(false);
+      }
+    }
+  };
+
   // Fetch event
   useEffect(() => {
     if (!router.isReady || !eventCode) return;
@@ -219,6 +262,7 @@ export default function EventCodePage() {
   const onPhotoFile = (file: File) => {
     if (photoUrl) URL.revokeObjectURL(photoUrl);
     setPhotoUrl(URL.createObjectURL(file));
+    setDidDownload(false); // ✅ reset share box for new poster
   };
 
   const generateAndDownload = async () => {
@@ -300,6 +344,7 @@ export default function EventCodePage() {
             }),
           }).catch(() => {});
 
+          setDidDownload(true); // ✅ show share box after success
           setGenerating(false);
         },
         "image/jpeg",
@@ -385,6 +430,39 @@ export default function EventCodePage() {
             {generating ? "Generating..." : "Generate & Download"}
           </button>
 
+          {/* ✅ SHARE BOX */}
+          {didDownload && (
+            <div className="mt-4 viro-card p-4 border border-[var(--viro-border)]">
+              <div className="text-sm font-semibold">Share your poster 🔥</div>
+              <div className="text-xs text-[var(--viro-muted)] mt-1">
+                Send the link so your friends can create theirs too.
+              </div>
+
+              <div className="mt-3 flex gap-2">
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 text-center viro-btn viro-btn-primary"
+                >
+                  Share on WhatsApp
+                </a>
+
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="flex-1 viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90"
+                >
+                  {copied ? "Copied!" : "Copy link"}
+                </button>
+              </div>
+
+              <div className="mt-3 text-[10px] text-[var(--viro-muted)] break-all">
+                {shareLink}
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 text-xs text-[var(--viro-muted)] space-y-1">
             <div>• Output: 1080×1080 JPG</div>
             <div>• Perfect for IG / WhatsApp</div>
@@ -449,7 +527,10 @@ export default function EventCodePage() {
               </button>
 
               {/* Name */}
-              <div className="absolute flex items-center justify-center font-extrabold text-center" style={textStyle}>
+              <div
+                className="absolute flex items-center justify-center font-extrabold text-center"
+                style={textStyle}
+              >
                 {name.trim() || "YOUR NAME"}
               </div>
             </div>
