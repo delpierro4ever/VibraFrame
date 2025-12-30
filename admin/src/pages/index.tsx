@@ -1,46 +1,238 @@
+// admin/src/pages/index.tsx
 import Head from "next/head";
 import Link from "next/link";
-import EventCard from "@/components/dashboard/EventCard";
-import { mockEvents } from "@/lib/mockData";
+import { useMemo } from "react";
 
-export default function Dashboard() {
+export default function HomePage() {
+  const year = useMemo(() => new Date().getFullYear(), []);
+
+  // ✅ Change this to a real published event code you want as "Demo"
+  const DEMO_EVENT_CODE = "VF-3FFQX";
+
   return (
     <>
       <Head>
-        <title>VibraFrame Admin</title>
+        <title>ViroEvent — Personalized Event Posters in Seconds</title>
+        <meta
+          name="description"
+          content="Organizers upload one poster template. Attendees add their photo + name and instantly download a 1080×1080 flyer."
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <main className="min-h-screen bg-neutral-950 text-white px-6 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold">My Events</h1>
-
-          <Link
-            href="/editor/new"
-            className="bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-2 rounded-lg font-semibold"
-          >
-            + Create New Event
-          </Link>
-        </div>
-
-        {/* Events Grid */}
-        {mockEvents.length === 0 ? (
-          <div className="text-center py-20 text-neutral-400">
-            <p className="text-lg mb-4">No events yet</p>
-            <Link
-              href="/editor/new"
-              className="inline-block bg-yellow-500 text-black px-6 py-3 rounded-lg font-semibold"
-            >
-              Create Your First Event
+      <main className="min-h-screen text-white">
+        {/* Top bar */}
+        <header className="sticky top-0 z-20 border-b border-[var(--viro-border)] bg-[rgba(11,11,20,0.75)] backdrop-blur">
+          <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] border border-[var(--viro-border)]">
+                {/* simple mark */}
+                <span className="text-[var(--viro-primary)] font-black">V</span>
+              </span>
+              <div className="leading-tight">
+                <div className="font-extrabold tracking-tight">ViroEvent</div>
+                <div className="text-xs text-[var(--viro-muted)] -mt-0.5">
+                  Personalized posters
+                </div>
+              </div>
             </Link>
+
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/e/${DEMO_EVENT_CODE}`}
+                className="viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90"
+              >
+                Try demo
+              </Link>
+              <Link href="/editor/new" className="viro-btn viro-btn-primary">
+                Create event
+              </Link>
+            </div>
           </div>
-        ) : (
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {mockEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
+        </header>
+
+        {/* Hero */}
+        <section className="mx-auto max-w-6xl px-4 pt-10 pb-10 lg:pt-16">
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-10 items-center">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)]">
+                <span className="text-[var(--viro-primary)] font-semibold">
+                  Mobile-first
+                </span>
+                <span className="text-[var(--viro-muted)]">
+                  • 1080×1080 export • Share-ready
+                </span>
+              </div>
+
+              <h1 className="text-3xl lg:text-5xl font-black tracking-tight">
+                One event poster.
+                <br />
+                <span className="text-[var(--viro-primary)]">
+                  Every attendee gets their own.
+                </span>
+              </h1>
+
+              <p className="text-[var(--viro-muted)] text-base lg:text-lg leading-relaxed">
+                Organizers upload a poster template (background + photo slot + name
+                slot). Attendees add their photo and name in seconds, then download
+                and share a personalized flyer.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Link
+                  href={`/e/${DEMO_EVENT_CODE}`}
+                  className="viro-btn viro-btn-primary text-center"
+                >
+                  Try the demo event
+                </Link>
+
+                <Link
+                  href="/editor/new"
+                  className="viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90 text-center"
+                >
+                  I’m an organizer
+                </Link>
+              </div>
+
+              <div className="text-xs text-[var(--viro-muted)] pt-1">
+                No app install. Works on WhatsApp & Instagram sharing.
+              </div>
+            </div>
+
+            {/* Mock / Preview card */}
+            <div className="viro-card p-5 lg:p-6 border border-[var(--viro-border)]">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-semibold">How it works</div>
+                <span className="text-xs px-3 py-1 rounded-full border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)]">
+                  3 steps
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <div className="h-8 w-8 rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] flex items-center justify-center font-extrabold text-[var(--viro-primary)]">
+                    1
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">Organizer creates event</div>
+                    <div className="text-xs text-[var(--viro-muted)]">
+                      Upload background + position photo + name.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="h-8 w-8 rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] flex items-center justify-center font-extrabold text-[var(--viro-primary)]">
+                    2
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">Share a link</div>
+                    <div className="text-xs text-[var(--viro-muted)]">
+                      Example: <span className="text-white">/e/{DEMO_EVENT_CODE}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="h-8 w-8 rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] flex items-center justify-center font-extrabold text-[var(--viro-primary)]">
+                    3
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">Attendees generate posters</div>
+                    <div className="text-xs text-[var(--viro-muted)]">
+                      Upload photo + name → download → share.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-4">
+                  <div className="text-xs text-[var(--viro-muted)]">Output</div>
+                  <div className="font-extrabold">1080×1080</div>
+                </div>
+                <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-4">
+                  <div className="text-xs text-[var(--viro-muted)]">Time</div>
+                  <div className="font-extrabold">~10 seconds</div>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <Link
+                  href={`/e/${DEMO_EVENT_CODE}`}
+                  className="w-full inline-flex justify-center viro-btn viro-btn-primary"
+                >
+                  Open demo
+                </Link>
+              </div>
+            </div>
           </div>
-        )}
+        </section>
+
+        {/* Use cases */}
+        <section className="mx-auto max-w-6xl px-4 pb-12">
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="viro-card p-5 border border-[var(--viro-border)]">
+              <div className="text-sm font-semibold">Church events</div>
+              <div className="text-xs text-[var(--viro-muted)] mt-1">
+                Let members share personalized invitation posters.
+              </div>
+            </div>
+            <div className="viro-card p-5 border border-[var(--viro-border)]">
+              <div className="text-sm font-semibold">Concerts & shows</div>
+              <div className="text-xs text-[var(--viro-muted)] mt-1">
+                Turn fans into promoters with their own flyers.
+              </div>
+            </div>
+            <div className="viro-card p-5 border border-[var(--viro-border)]">
+              <div className="text-sm font-semibold">Schools & conferences</div>
+              <div className="text-xs text-[var(--viro-muted)] mt-1">
+                Attendees generate branded posters instantly.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="mx-auto max-w-6xl px-4 pb-14">
+          <div className="viro-card p-6 lg:p-8 border border-[var(--viro-border)]">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+              <div>
+                <div className="text-xl font-black">Ready to create your first event?</div>
+                <div className="text-sm text-[var(--viro-muted)] mt-1">
+                  Upload a poster template once. Let attendees do the rest.
+                </div>
+              </div>
+              <div className="flex gap-3 w-full lg:w-auto">
+                <Link
+                  href="/editor/new"
+                  className="flex-1 lg:flex-none text-center viro-btn viro-btn-primary"
+                >
+                  Create event
+                </Link>
+                <Link
+                  href={`/e/${DEMO_EVENT_CODE}`}
+                  className="flex-1 lg:flex-none text-center viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90"
+                >
+                  Try demo
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="border-t border-[var(--viro-border)] bg-[rgba(11,11,20,0.55)]">
+          <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-[var(--viro-muted)] flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+              © {year} <span className="text-white font-semibold">ViroEvent</span>. Powered
+              by <span className="text-white">Alita Automations</span>.
+            </div>
+            <div className="text-xs">
+              Contact: <span className="text-white">+237 6725 229 13</span>
+            </div>
+          </div>
+        </footer>
       </main>
     </>
   );
