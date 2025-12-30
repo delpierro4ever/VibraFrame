@@ -1,7 +1,7 @@
 // admin/src/pages/e/[eventCode].tsx
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type Template = {
   canvas?: { width?: number; height?: number };
@@ -76,15 +76,30 @@ async function loadImage(src: string) {
   return img;
 }
 
+function isAbortError(e: unknown): boolean {
+  if (!e || typeof e !== "object") return false;
+  const err = e as { name?: string; message?: string };
+  return err.name === "AbortError" || /abort/i.test(err.message ?? "");
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
 export default function EventCodePage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // shared file input
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // preview box ref (we measure its real width)
   const previewRef = useRef<HTMLDivElement>(null);
+
   const [previewPx, setPreviewPx] = useState(420);
 
   const eventCode = useMemo(() => {
@@ -103,6 +118,12 @@ export default function EventCodePage() {
   // ✅ Share state
   const [didDownload, setDidDownload] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // ✅ Store generated image for sharing
+  const [resultBlob, setResultBlob] = useState<Blob | null>(null);
+  const [resultPreviewUrl, setResultPreviewUrl] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
 
   const shareLink = useMemo(() => {
     const origin =
@@ -127,7 +148,6 @@ export default function EventCodePage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // fallback
       try {
         const ta = document.createElement("textarea");
         ta.value = shareLink;
@@ -143,6 +163,62 @@ export default function EventCodePage() {
     }
   };
 
+  const shareImage = async () => {
+    if (!resultBlob) return;
+
+    // Clear only share notice (don’t overwrite fetch errors)
+    setShareNotice(null);
+
+    const safeName = (name.trim() || "poster")
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-_]/g, "");
+    const safeCode = (eventCode || "VF").replace(/[^a-z0-9-_]/gi, "");
+    const filename = `${safeName}-${safeCode}.jpg`;
+
+    const file = new File([resultBlob], filename, { type: "image/jpeg" });
+
+    const nav = navigator as unknown as {
+      share?: (data: ShareData) => Promise<void>;
+      canShare?: (data?: ShareData) => boolean;
+    };
+
+    try {
+      setSharing(true);
+
+      // If browser doesn’t support navigator.share at all → fallback to download
+      if (!nav.share) {
+        downloadBlob(resultBlob, filename);
+        setShareNotice("Sharing isn’t supported here. I downloaded the image instead.");
+        return;
+      }
+
+      const shareData: ShareData = {
+        files: [file],
+        title: "ViroEvent Poster",
+        text: "My supporter poster",
+      };
+
+      // If canShare exists but refuses files → fallback to download
+      if (nav.canShare && !nav.canShare(shareData)) {
+        downloadBlob(resultBlob, filename);
+        setShareNotice("Your browser can’t share image files. I downloaded it instead.");
+        return;
+      }
+
+      await nav.share(shareData);
+    } catch (e) {
+      if (isAbortError(e)) {
+        // user cancelled share sheet → do nothing noisy
+        return;
+      }
+      downloadBlob(resultBlob, filename);
+      setShareNotice("Share failed on this device. I downloaded the image instead.");
+    } finally {
+      setSharing(false);
+    }
+  };
+
   // Fetch event
   useEffect(() => {
     if (!router.isReady || !eventCode) return;
@@ -154,7 +230,9 @@ export default function EventCodePage() {
       setErr(null);
 
       try {
-        const r = await fetch(`/api/get-event-by-code?eventCode=${encodeURIComponent(eventCode)}`);
+        const r = await fetch(
+          `/api/get-event-by-code?eventCode=${encodeURIComponent(eventCode)}`
+        );
         const data = (await r.json()) as ApiResp;
 
         if (cancelled) return;
@@ -184,7 +262,6 @@ export default function EventCodePage() {
 
     const ro = new ResizeObserver(() => {
       const w = el.getBoundingClientRect().width;
-      // keep it sane
       setPreviewPx(Math.max(240, Math.min(420, Math.round(w))));
     });
 
@@ -192,12 +269,18 @@ export default function EventCodePage() {
     return () => ro.disconnect();
   }, []);
 
-  // Cleanup photo object URL
+  // Cleanup object URLs properly (when they change + on unmount)
   useEffect(() => {
     return () => {
       if (photoUrl) URL.revokeObjectURL(photoUrl);
     };
   }, [photoUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (resultPreviewUrl) URL.revokeObjectURL(resultPreviewUrl);
+    };
+  }, [resultPreviewUrl]);
 
   const tpl = event?.template ?? {};
 
@@ -215,13 +298,11 @@ export default function EventCodePage() {
   const textWNorm = tpl.text?.w ?? 0.82;
   const textHNorm = tpl.text?.h ?? 0.14;
 
-  // Make name font 3x smaller than before
   const textSizeBase = (tpl.text?.size ?? 44) / 3;
   const textSizeOut = textSizeBase * scaleToOut;
 
   const textColor = tpl.text?.color ?? "#FFD54F";
 
-  // Compute output positions (1080 space) + clamp
   let photoXOut = xNormPhoto * OUT_W;
   let photoYOut = yNormPhoto * OUT_H;
 
@@ -232,10 +313,8 @@ export default function EventCodePage() {
   const textXOut = xNormText * OUT_W;
   const textYOut = yNormText * OUT_H;
 
-  // Responsive preview scale based on real previewPx
   const previewScale = previewPx / OUT_W;
 
-  // Use % for positions so it stays correct even when the preview resizes
   const photoStyle: React.CSSProperties = {
     left: `${(photoXOut / OUT_W) * 100}%`,
     top: `${(photoYOut / OUT_H) * 100}%`,
@@ -262,13 +341,20 @@ export default function EventCodePage() {
   const onPhotoFile = (file: File) => {
     if (photoUrl) URL.revokeObjectURL(photoUrl);
     setPhotoUrl(URL.createObjectURL(file));
-    setDidDownload(false); // ✅ reset share box for new poster
+    setDidDownload(false);
+    setResultBlob(null);
+    setShareNotice(null);
+
+    if (resultPreviewUrl) URL.revokeObjectURL(resultPreviewUrl);
+    setResultPreviewUrl(null);
   };
 
   const generateAndDownload = async () => {
     if (!event?.backgroundSignedUrl || !name.trim() || !photoUrl || !canvasRef.current) return;
 
     setGenerating(true);
+    setErr(null);
+    setShareNotice(null);
 
     try {
       const canvas = canvasRef.current;
@@ -327,24 +413,31 @@ export default function EventCodePage() {
             return;
           }
 
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `${name.trim().toLowerCase().replace(/\s+/g, "-")}-${eventCode}.jpg`;
-          a.click();
-          URL.revokeObjectURL(url);
+          // ✅ store for share
+          setResultBlob(blob);
+          if (resultPreviewUrl) URL.revokeObjectURL(resultPreviewUrl);
+          const previewUrl = URL.createObjectURL(blob);
+          setResultPreviewUrl(previewUrl);
 
-          // ✅ Log download (non-blocking, safe)
+          // ✅ download
+          const safeName = name
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9-_]/g, "");
+          const safeCode = (eventCode || "VF").replace(/[^a-z0-9-_]/gi, "");
+          const filename = `${safeName || "poster"}-${safeCode}.jpg`;
+
+          downloadBlob(blob, filename);
+
+          // ✅ log download (non-blocking)
           fetch("/api/log-download", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              eventId: event?.eventId,
-              eventCode,
-            }),
+            body: JSON.stringify({ eventId: event?.eventId, eventCode }),
           }).catch(() => {});
 
-          setDidDownload(true); // ✅ show share box after success
+          setDidDownload(true);
           setGenerating(false);
         },
         "image/jpeg",
@@ -359,7 +452,7 @@ export default function EventCodePage() {
   return (
     <>
       <Head>
-        <title>ViroEvent | {eventCode}</title>
+        <title>{`ViroEvent | ${eventCode}`}</title>
       </Head>
 
       <canvas ref={canvasRef} className="hidden" />
@@ -375,9 +468,7 @@ export default function EventCodePage() {
         }}
       />
 
-      {/* Mobile-first layout */}
       <main className="min-h-screen text-white flex flex-col lg:flex-row">
-        {/* LEFT PANEL */}
         <aside className="w-full lg:w-[380px] p-4 lg:p-6 viro-card m-4 lg:m-6">
           <div className="text-sm mb-4">
             <div className="font-semibold">
@@ -430,35 +521,52 @@ export default function EventCodePage() {
             {generating ? "Generating..." : "Generate & Download"}
           </button>
 
-          {/* ✅ SHARE BOX */}
+          {/* ✅ SHARE IMAGE BOX */}
           {didDownload && (
             <div className="mt-4 viro-card p-4 border border-[var(--viro-border)]">
               <div className="text-sm font-semibold">Share your poster 🔥</div>
               <div className="text-xs text-[var(--viro-muted)] mt-1">
-                Send the link so your friends can create theirs too.
+                Share the image directly (WhatsApp/IG) or share the link.
               </div>
 
-              <div className="mt-3 flex gap-2">
-                <a
-                  href={whatsappHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex-1 text-center viro-btn viro-btn-primary"
-                >
-                  Share on WhatsApp
-                </a>
+              {resultPreviewUrl && (
+                <div className="mt-3 rounded-lg overflow-hidden border border-[var(--viro-border)]">
+                  <img src={resultPreviewUrl} alt="Generated poster" className="w-full h-auto" />
+                </div>
+              )}
 
+              <div className="mt-3 flex gap-2 flex-col">
                 <button
                   type="button"
-                  onClick={copyLink}
-                  className="flex-1 viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90"
+                  onClick={shareImage}
+                  disabled={!resultBlob || sharing}
+                  className="w-full viro-btn viro-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {copied ? "Copied!" : "Copy link"}
+                  {sharing ? "Opening share..." : "Share Image"}
                 </button>
-              </div>
 
-              <div className="mt-3 text-[10px] text-[var(--viro-muted)] break-all">
-                {shareLink}
+                {shareNotice && (
+                  <div className="text-[11px] text-[var(--viro-muted)]">{shareNotice}</div>
+                )}
+
+                <div className="flex gap-2">
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 text-center viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90"
+                  >
+                    Share Link (WhatsApp)
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={copyLink}
+                    className="flex-1 viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90"
+                  >
+                    {copied ? "Copied!" : "Copy link"}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -474,7 +582,6 @@ export default function EventCodePage() {
           </div>
         </aside>
 
-        {/* RIGHT PANEL */}
         <section className="flex-1 flex items-start lg:items-center justify-center p-4 lg:p-8">
           <div className="w-full max-w-[560px] viro-card p-4 lg:p-6">
             <div className="flex items-center justify-between mb-4">
@@ -484,7 +591,6 @@ export default function EventCodePage() {
               </span>
             </div>
 
-            {/* Responsive square preview */}
             <div
               ref={previewRef}
               className="relative w-full aspect-square max-w-[420px] mx-auto rounded-xl overflow-hidden shadow-2xl bg-black/20"
@@ -499,7 +605,6 @@ export default function EventCodePage() {
                 <div className="absolute inset-0 bg-black/20" />
               )}
 
-              {/* Photo */}
               <button
                 type="button"
                 onClick={pickPhoto}
@@ -526,7 +631,6 @@ export default function EventCodePage() {
                 )}
               </button>
 
-              {/* Name */}
               <div
                 className="absolute flex items-center justify-center font-extrabold text-center"
                 style={textStyle}
