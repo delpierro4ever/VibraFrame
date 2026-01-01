@@ -6,8 +6,11 @@ import { useMemo } from "react";
 export default function HomePage() {
   const year = useMemo(() => new Date().getFullYear(), []);
 
-  // ✅ Change this to a real published event code you want as "Demo"
-  const DEMO_EVENT_CODE = "VF-3FFQX";
+  // ✅ Always-working demo event (controlled via env)
+  // Set on Vercel:
+  // NEXT_PUBLIC_DEMO_EVENT_CODE=VF-3FFQX
+  const DEMO_EVENT_CODE =
+    process.env.NEXT_PUBLIC_DEMO_EVENT_CODE || "demo";
 
   return (
     <>
@@ -21,12 +24,11 @@ export default function HomePage() {
       </Head>
 
       <main className="min-h-screen text-white">
-        {/* Top bar */}
+        {/* Header */}
         <header className="sticky top-0 z-20 border-b border-[var(--viro-border)] bg-[rgba(11,11,20,0.75)] backdrop-blur">
           <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] border border-[var(--viro-border)]">
-                {/* simple mark */}
                 <span className="text-[var(--viro-primary)] font-black">V</span>
               </span>
               <div className="leading-tight">
@@ -73,9 +75,9 @@ export default function HomePage() {
               </h1>
 
               <p className="text-[var(--viro-muted)] text-base lg:text-lg leading-relaxed">
-                Organizers upload a poster template (background + photo slot + name
-                slot). Attendees add their photo and name in seconds, then download
-                and share a personalized flyer.
+                Organizers upload a poster template (background + photo slot +
+                name slot). Attendees add their photo and name in seconds, then
+                download and share a personalized flyer.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -99,7 +101,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Mock / Preview card */}
+            {/* How it works */}
             <div className="viro-card p-5 lg:p-6 border border-[var(--viro-border)]">
               <div className="flex items-center justify-between mb-4">
                 <div className="text-sm font-semibold">How it works</div>
@@ -114,7 +116,9 @@ export default function HomePage() {
                     1
                   </div>
                   <div>
-                    <div className="text-sm font-semibold">Organizer creates event</div>
+                    <div className="text-sm font-semibold">
+                      Organizer creates event
+                    </div>
                     <div className="text-xs text-[var(--viro-muted)]">
                       Upload background + position photo + name.
                     </div>
@@ -128,7 +132,10 @@ export default function HomePage() {
                   <div>
                     <div className="text-sm font-semibold">Share a link</div>
                     <div className="text-xs text-[var(--viro-muted)]">
-                      Example: <span className="text-white">/e/{DEMO_EVENT_CODE}</span>
+                      Example:{" "}
+                      <span className="text-white">
+                        /e/{DEMO_EVENT_CODE}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -138,7 +145,9 @@ export default function HomePage() {
                     3
                   </div>
                   <div>
-                    <div className="text-sm font-semibold">Attendees generate posters</div>
+                    <div className="text-sm font-semibold">
+                      Attendees generate posters
+                    </div>
                     <div className="text-xs text-[var(--viro-muted)]">
                       Upload photo + name → download → share.
                     </div>
@@ -148,11 +157,15 @@ export default function HomePage() {
 
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-4">
-                  <div className="text-xs text-[var(--viro-muted)]">Output</div>
+                  <div className="text-xs text-[var(--viro-muted)]">
+                    Output
+                  </div>
                   <div className="font-extrabold">1080×1080</div>
                 </div>
                 <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-4">
-                  <div className="text-xs text-[var(--viro-muted)]">Time</div>
+                  <div className="text-xs text-[var(--viro-muted)]">
+                    Time
+                  </div>
                   <div className="font-extrabold">~10 seconds</div>
                 </div>
               </div>
@@ -169,36 +182,14 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Use cases */}
-        <section className="mx-auto max-w-6xl px-4 pb-12">
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="viro-card p-5 border border-[var(--viro-border)]">
-              <div className="text-sm font-semibold">Church events</div>
-              <div className="text-xs text-[var(--viro-muted)] mt-1">
-                Let members share personalized invitation posters.
-              </div>
-            </div>
-            <div className="viro-card p-5 border border-[var(--viro-border)]">
-              <div className="text-sm font-semibold">Concerts & shows</div>
-              <div className="text-xs text-[var(--viro-muted)] mt-1">
-                Turn fans into promoters with their own flyers.
-              </div>
-            </div>
-            <div className="viro-card p-5 border border-[var(--viro-border)]">
-              <div className="text-sm font-semibold">Schools & conferences</div>
-              <div className="text-xs text-[var(--viro-muted)] mt-1">
-                Attendees generate branded posters instantly.
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* CTA */}
         <section className="mx-auto max-w-6xl px-4 pb-14">
           <div className="viro-card p-6 lg:p-8 border border-[var(--viro-border)]">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div>
-                <div className="text-xl font-black">Ready to create your first event?</div>
+                <div className="text-xl font-black">
+                  Ready to create your first event?
+                </div>
                 <div className="text-sm text-[var(--viro-muted)] mt-1">
                   Upload a poster template once. Let attendees do the rest.
                 </div>
@@ -225,11 +216,13 @@ export default function HomePage() {
         <footer className="border-t border-[var(--viro-border)] bg-[rgba(11,11,20,0.55)]">
           <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-[var(--viro-muted)] flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
-              © {year} <span className="text-white font-semibold">ViroEvent</span>. Powered
+              © {year}{" "}
+              <span className="text-white font-semibold">ViroEvent</span>. Powered
               by <span className="text-white">Alita Automations</span>.
             </div>
             <div className="text-xs">
-              Contact: <span className="text-white">+237 6725 229 13</span>
+              Contact:{" "}
+              <span className="text-white">+237 6725 229 13</span>
             </div>
           </div>
         </footer>
