@@ -1,16 +1,30 @@
 // admin/src/pages/index.tsx
 import Head from "next/head";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/router";
+
+function cleanEventCode(raw: string): string {
+  // remove leading "=" if someone pasted from spreadsheet
+  return raw.replace(/^=+/, "").trim().toUpperCase();
+}
 
 export default function HomePage() {
+  const router = useRouter();
   const year = useMemo(() => new Date().getFullYear(), []);
 
-  // ✅ Always-working demo event (controlled via env)
-  // Set on Vercel:
-  // NEXT_PUBLIC_DEMO_EVENT_CODE=VF-3FFQX
-  const DEMO_EVENT_CODE =
-    process.env.NEXT_PUBLIC_DEMO_EVENT_CODE || "demo";
+  const [code, setCode] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+
+  const goToEvent = async () => {
+    const c = cleanEventCode(code);
+    if (!c) {
+      setErr("Enter your event code (example: VF-3FFQX)");
+      return;
+    }
+    setErr(null);
+    await router.push(`/e/${encodeURIComponent(c)}`);
+  };
 
   return (
     <>
@@ -41,13 +55,10 @@ export default function HomePage() {
 
             <div className="flex items-center gap-2">
               <Link
-                href={`/e/${DEMO_EVENT_CODE}`}
-                className="viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90"
+                href="/admin"
+                className="viro-btn viro-btn-primary"
               >
-                Try demo
-              </Link>
-              <Link href="/editor/new" className="viro-btn viro-btn-primary">
-                Create event
+                Organizer dashboard
               </Link>
             </div>
           </div>
@@ -75,29 +86,60 @@ export default function HomePage() {
               </h1>
 
               <p className="text-[var(--viro-muted)] text-base lg:text-lg leading-relaxed">
-                Organizers upload a poster template (background + photo slot +
-                name slot). Attendees add their photo and name in seconds, then
-                download and share a personalized flyer.
+                Organizers upload a poster template (background + photo slot + name slot).
+                Attendees add their photo and name in seconds, then download and share
+                a personalized flyer.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Link
-                  href={`/e/${DEMO_EVENT_CODE}`}
-                  className="viro-btn viro-btn-primary text-center"
-                >
-                  Try the demo event
-                </Link>
+              {/* Attendee quick entry */}
+              <div className="viro-card p-4 border border-[var(--viro-border)]">
+                <div className="text-sm font-semibold">I have an event code</div>
+                <div className="text-xs text-[var(--viro-muted)] mt-1">
+                  Enter the code from the organizer (example: <span className="text-white">VF-3FFQX</span>)
+                </div>
 
-                <Link
-                  href="/editor/new"
-                  className="viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90 text-center"
-                >
-                  I’m an organizer
-                </Link>
+                <div className="mt-3 flex gap-2">
+                  <input
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="VF-XXXXX"
+                    className="flex-1 viro-input"
+                    autoCapitalize="characters"
+                    inputMode="text"
+                  />
+                  <button
+                    type="button"
+                    onClick={goToEvent}
+                    className="viro-btn viro-btn-primary"
+                  >
+                    Open
+                  </button>
+                </div>
+
+                {err ? (
+                  <div className="mt-2 text-xs text-[var(--viro-danger)]">{err}</div>
+                ) : null}
+
+                <div className="mt-3 text-xs text-[var(--viro-muted)]">
+                  No app install. Works perfectly on WhatsApp & Instagram.
+                </div>
               </div>
 
-              <div className="text-xs text-[var(--viro-muted)] pt-1">
-                No app install. Works on WhatsApp & Instagram sharing.
+              {/* Organizer CTA */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Link
+                  href="/admin"
+                  className="viro-btn viro-btn-primary text-center"
+                >
+                  Create an event (organizer)
+                </Link>
+
+                <Link
+                  href="/auth"
+                  className="viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90 text-center"
+                >
+                  Login / Register
+                </Link>
               </div>
             </div>
 
@@ -116,9 +158,7 @@ export default function HomePage() {
                     1
                   </div>
                   <div>
-                    <div className="text-sm font-semibold">
-                      Organizer creates event
-                    </div>
+                    <div className="text-sm font-semibold">Organizer creates event</div>
                     <div className="text-xs text-[var(--viro-muted)]">
                       Upload background + position photo + name.
                     </div>
@@ -132,10 +172,7 @@ export default function HomePage() {
                   <div>
                     <div className="text-sm font-semibold">Share a link</div>
                     <div className="text-xs text-[var(--viro-muted)]">
-                      Example:{" "}
-                      <span className="text-white">
-                        /e/{DEMO_EVENT_CODE}
-                      </span>
+                      Example: <span className="text-white">/e/VF-XXXXX</span>
                     </div>
                   </div>
                 </div>
@@ -145,9 +182,7 @@ export default function HomePage() {
                     3
                   </div>
                   <div>
-                    <div className="text-sm font-semibold">
-                      Attendees generate posters
-                    </div>
+                    <div className="text-sm font-semibold">Attendees generate posters</div>
                     <div className="text-xs text-[var(--viro-muted)]">
                       Upload photo + name → download → share.
                     </div>
@@ -157,25 +192,21 @@ export default function HomePage() {
 
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-4">
-                  <div className="text-xs text-[var(--viro-muted)]">
-                    Output
-                  </div>
+                  <div className="text-xs text-[var(--viro-muted)]">Output</div>
                   <div className="font-extrabold">1080×1080</div>
                 </div>
                 <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-4">
-                  <div className="text-xs text-[var(--viro-muted)]">
-                    Time
-                  </div>
+                  <div className="text-xs text-[var(--viro-muted)]">Time</div>
                   <div className="font-extrabold">~10 seconds</div>
                 </div>
               </div>
 
               <div className="mt-5">
                 <Link
-                  href={`/e/${DEMO_EVENT_CODE}`}
+                  href="/admin"
                   className="w-full inline-flex justify-center viro-btn viro-btn-primary"
                 >
-                  Open demo
+                  Organizer dashboard
                 </Link>
               </div>
             </div>
@@ -187,26 +218,25 @@ export default function HomePage() {
           <div className="viro-card p-6 lg:p-8 border border-[var(--viro-border)]">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div>
-                <div className="text-xl font-black">
-                  Ready to create your first event?
-                </div>
+                <div className="text-xl font-black">Ready to create your first event?</div>
                 <div className="text-sm text-[var(--viro-muted)] mt-1">
                   Upload a poster template once. Let attendees do the rest.
                 </div>
               </div>
               <div className="flex gap-3 w-full lg:w-auto">
                 <Link
-                  href="/editor/new"
+                  href="/admin"
                   className="flex-1 lg:flex-none text-center viro-btn viro-btn-primary"
                 >
                   Create event
                 </Link>
-                <Link
-                  href={`/e/${DEMO_EVENT_CODE}`}
+                <button
+                  type="button"
+                  onClick={goToEvent}
                   className="flex-1 lg:flex-none text-center viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90"
                 >
-                  Try demo
-                </Link>
+                  Open event code
+                </button>
               </div>
             </div>
           </div>
@@ -216,13 +246,11 @@ export default function HomePage() {
         <footer className="border-t border-[var(--viro-border)] bg-[rgba(11,11,20,0.55)]">
           <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-[var(--viro-muted)] flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
-              © {year}{" "}
-              <span className="text-white font-semibold">ViroEvent</span>. Powered
-              by <span className="text-white">Alita Automations</span>.
+              © {year} <span className="text-white font-semibold">ViroEvent</span>. Powered by{" "}
+              <span className="text-white">Alita Automations</span>.
             </div>
             <div className="text-xs">
-              Contact:{" "}
-              <span className="text-white">+237 6725 229 13</span>
+              Contact: <span className="text-white">+237 6725 229 13</span>
             </div>
           </div>
         </footer>
