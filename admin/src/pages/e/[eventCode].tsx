@@ -94,12 +94,52 @@ function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
+// ✅ Watermark helper (NEW)
+function drawWatermark(ctx: CanvasRenderingContext2D, text: string) {
+  ctx.save();
+
+  const padX = 18;
+  const padY = 10;
+  const h = 44;
+
+  ctx.font = "700 28px Arial, sans-serif";
+  const w = Math.ceil(ctx.measureText(text).width) + padX * 2;
+
+  // bottom-left placement
+  const x = 32;
+  const y = OUT_H - (h + 32);
+
+  // pill background
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  const r = 14;
+
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  ctx.fill();
+
+  // text
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x + padX, y + h / 2);
+
+  ctx.restore();
+}
+
 export default function EventCodePage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const previewRef = useRef<HTMLDivElement>(null);
   const [previewPx, setPreviewPx] = useState(420);
 
   const eventCode = useMemo(() => {
@@ -166,7 +206,6 @@ export default function EventCodePage() {
   const shareImage = async () => {
     if (!resultBlob) return;
 
-    // Clear only share notice (don’t overwrite fetch errors)
     setShareNotice(null);
 
     const safeName = (name.trim() || "poster")
@@ -174,7 +213,7 @@ export default function EventCodePage() {
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9-_]/g, "");
     const safeCode = (eventCode || "VF").replace(/[^a-z0-9-_]/gi, "");
-    const filename = `${safeName}-${safeCode}.jpg`;
+    const filename = `${safeName || "poster"}-${safeCode}.jpg`;
 
     const file = new File([resultBlob], filename, { type: "image/jpeg" });
 
@@ -186,7 +225,6 @@ export default function EventCodePage() {
     try {
       setSharing(true);
 
-      // If browser doesn’t support navigator.share at all → fallback to download
       if (!nav.share) {
         downloadBlob(resultBlob, filename);
         setShareNotice("Sharing isn’t supported here. I downloaded the image instead.");
@@ -199,7 +237,6 @@ export default function EventCodePage() {
         text: "My supporter poster",
       };
 
-      // If canShare exists but refuses files → fallback to download
       if (nav.canShare && !nav.canShare(shareData)) {
         downloadBlob(resultBlob, filename);
         setShareNotice("Your browser can’t share image files. I downloaded it instead.");
@@ -208,10 +245,7 @@ export default function EventCodePage() {
 
       await nav.share(shareData);
     } catch (e) {
-      if (isAbortError(e)) {
-        // user cancelled share sheet → do nothing noisy
-        return;
-      }
+      if (isAbortError(e)) return; // user cancelled
       downloadBlob(resultBlob, filename);
       setShareNotice("Share failed on this device. I downloaded the image instead.");
     } finally {
@@ -230,9 +264,7 @@ export default function EventCodePage() {
       setErr(null);
 
       try {
-        const r = await fetch(
-          `/api/get-event-by-code?eventCode=${encodeURIComponent(eventCode)}`
-        );
+        const r = await fetch(`/api/get-event-by-code?eventCode=${encodeURIComponent(eventCode)}`);
         const data = (await r.json()) as ApiResp;
 
         if (cancelled) return;
@@ -269,7 +301,7 @@ export default function EventCodePage() {
     return () => ro.disconnect();
   }, []);
 
-  // Cleanup object URLs properly (when they change + on unmount)
+  // Cleanup object URLs properly
   useEffect(() => {
     return () => {
       if (photoUrl) URL.revokeObjectURL(photoUrl);
@@ -400,11 +432,15 @@ export default function EventCodePage() {
 
       ctx.restore();
 
+      // name text
       ctx.font = `800 ${Math.round(textSizeOut)}px Arial, sans-serif`;
       ctx.fillStyle = textColor;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(name.trim().toUpperCase(), textXOut, textYOut);
+
+      // ✅ WATERMARK (NEW)
+      drawWatermark(ctx, "Create yours: viroevent.com");
 
       canvas.toBlob(
         (blob) => {
@@ -413,13 +449,13 @@ export default function EventCodePage() {
             return;
           }
 
-          // ✅ store for share
+          // store for share
           setResultBlob(blob);
           if (resultPreviewUrl) URL.revokeObjectURL(resultPreviewUrl);
           const previewUrl = URL.createObjectURL(blob);
           setResultPreviewUrl(previewUrl);
 
-          // ✅ download
+          // download
           const safeName = name
             .trim()
             .toLowerCase()
@@ -430,7 +466,7 @@ export default function EventCodePage() {
 
           downloadBlob(blob, filename);
 
-          // ✅ log download (non-blocking)
+          // log download (non-blocking)
           fetch("/api/log-download", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -452,7 +488,7 @@ export default function EventCodePage() {
   return (
     <>
       <Head>
-        <title>{`ViroEvent | ${eventCode}`}</title>
+        <title>ViroEvent | {eventCode}</title>
       </Head>
 
       <canvas ref={canvasRef} className="hidden" />
@@ -631,10 +667,7 @@ export default function EventCodePage() {
                 )}
               </button>
 
-              <div
-                className="absolute flex items-center justify-center font-extrabold text-center"
-                style={textStyle}
-              >
+              <div className="absolute flex items-center justify-center font-extrabold text-center" style={textStyle}>
                 {name.trim() || "YOUR NAME"}
               </div>
             </div>

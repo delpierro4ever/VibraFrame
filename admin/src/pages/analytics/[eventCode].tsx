@@ -1,7 +1,10 @@
+// admin/src/pages/analytics/[eventCode].tsx
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
+
+type DailyRow = { day: string; downloads: number };
 
 type ApiOk = {
   ok: true;
@@ -14,7 +17,7 @@ type ApiOk = {
     createdAt: string | null;
   } | null;
   totalDownloads: number;
-  daily: Array<{ day: string; downloads: number }>;
+  daily: DailyRow[];
 };
 
 type ApiErr = { ok: false; error: string; message?: string };
@@ -25,6 +28,10 @@ function cleanEventCode(raw: unknown): string {
   return raw.replace(/^=+/, "").trim();
 }
 
+function sumDownloads(rows: DailyRow[]) {
+  return rows.reduce((acc, r) => acc + (Number.isFinite(r.downloads) ? r.downloads : 0), 0);
+}
+
 export default function AnalyticsPage() {
   const router = useRouter();
 
@@ -33,9 +40,40 @@ export default function AnalyticsPage() {
     return cleanEventCode(typeof q === "string" ? q : Array.isArray(q) ? q[0] : "");
   }, [router.query.eventCode]);
 
+  const [days, setDays] = useState<7 | 30 | 90>(30);
+
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [data, setData] = useState<ApiOk | null>(null);
+
+  const [copied, setCopied] = useState(false);
+
+  const attendeeLink = useMemo(() => {
+    if (typeof window === "undefined") return `/e/${eventCode}`;
+    return `${window.location.origin}/e/${eventCode}`;
+  }, [eventCode]);
+
+  const copyAttendeeLink = async () => {
+    try {
+      await navigator.clipboard.writeText(attendeeLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      // fallback
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = attendeeLink;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      } catch {
+        setCopied(false);
+      }
+    }
+  };
 
   useEffect(() => {
     if (!router.isReady || !eventCode) return;
@@ -46,7 +84,9 @@ export default function AnalyticsPage() {
       setErr(null);
 
       try {
-        const r = await fetch(`/api/analytics?eventCode=${encodeURIComponent(eventCode)}&days=30`);
+        const r = await fetch(
+          `/api/analytics?eventCode=${encodeURIComponent(eventCode)}&days=${days}`
+        );
         const json = (await r.json()) as ApiResp;
         if (cancelled) return;
 
@@ -67,13 +107,13 @@ export default function AnalyticsPage() {
     return () => {
       cancelled = true;
     };
-  }, [router.isReady, eventCode]);
+  }, [router.isReady, eventCode, days]);
 
   const daily = data?.daily ?? [];
   const maxDay = Math.max(1, ...daily.map((d) => d.downloads || 0));
 
-  const attendeeLink =
-    typeof window !== "undefined" ? `${window.location.origin}/e/${eventCode}` : `/e/${eventCode}`;
+  const last7 = daily.slice(-7);
+  const downloadsLast7 = sumDownloads(last7);
 
   return (
     <>
@@ -83,23 +123,59 @@ export default function AnalyticsPage() {
 
       <main className="min-h-screen text-white p-4 lg:p-8">
         <div className="mx-auto max-w-3xl">
+          {/* top nav */}
           <div className="flex items-center justify-between mb-4">
             <Link href="/" className="text-sm text-[var(--viro-muted)] hover:opacity-90">
               ← Back to home
             </Link>
 
-            <Link
-              href={`/e/${eventCode}`}
-              className="viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90"
-            >
-              Open attendee link
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/e/${eventCode}`}
+                className="viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90"
+              >
+                Open attendee page
+              </Link>
+            </div>
           </div>
 
           <div className="viro-card p-5 border border-[var(--viro-border)]">
-            <div className="text-sm text-[var(--viro-muted)]">Analytics</div>
-            <div className="text-2xl font-black mt-1">
-              Event: <span className="text-[var(--viro-primary)]">{eventCode}</span>
+            <div className="text-sm text-[var(--viro-muted)]">Organizer Analytics</div>
+
+            <div className="mt-1 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+              <div>
+                <div className="text-2xl font-black">
+                  Event: <span className="text-[var(--viro-primary)]">{eventCode}</span>
+                </div>
+                {data?.event?.name ? (
+                  <div className="text-sm text-white/90 mt-1">{data.event.name}</div>
+                ) : null}
+                {data?.event?.description ? (
+                  <div className="text-xs text-[var(--viro-muted)] mt-1">{data.event.description}</div>
+                ) : null}
+              </div>
+
+              {/* days toggle */}
+              <div className="flex items-center gap-2">
+                {[7, 30, 90].map((d) => {
+                  const active = days === d;
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDays(d as 7 | 30 | 90)}
+                      className={[
+                        "px-3 py-2 rounded-xl text-xs font-semibold border transition",
+                        active
+                          ? "border-[var(--viro-primary)] bg-[rgba(255,138,42,0.12)]"
+                          : "border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90",
+                      ].join(" ")}
+                    >
+                      {d}d
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {loading ? (
@@ -108,24 +184,38 @@ export default function AnalyticsPage() {
               <div className="mt-4 text-[var(--viro-danger)]">{err}</div>
             ) : (
               <>
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* stats */}
+                <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-4">
                     <div className="text-xs text-[var(--viro-muted)]">Total downloads</div>
                     <div className="text-3xl font-black mt-1">{data?.totalDownloads ?? 0}</div>
                   </div>
 
                   <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-4">
+                    <div className="text-xs text-[var(--viro-muted)]">Downloads (last 7d)</div>
+                    <div className="text-3xl font-black mt-1">{downloadsLast7}</div>
+                  </div>
+
+                  <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-4">
                     <div className="text-xs text-[var(--viro-muted)]">Attendee link</div>
-                    <div className="text-sm font-semibold mt-1 break-all">{attendeeLink}</div>
+                    <div className="text-[11px] text-white/90 mt-1 break-all">{attendeeLink}</div>
+                    <button
+                      type="button"
+                      onClick={copyAttendeeLink}
+                      className="mt-2 w-full viro-btn border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] hover:opacity-90"
+                    >
+                      {copied ? "Copied ✅" : "Copy link"}
+                    </button>
                   </div>
                 </div>
 
+                {/* chart */}
                 <div className="mt-6">
-                  <div className="text-sm font-semibold mb-2">Daily downloads (last 14 days)</div>
+                  <div className="text-sm font-semibold mb-2">Daily downloads ({days} days)</div>
 
                   <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-4">
                     <div className="space-y-2">
-                      {daily.slice(-14).map((d) => {
+                      {daily.map((d) => {
                         const pct = Math.round((100 * (d.downloads || 0)) / maxDay);
                         return (
                           <div key={d.day} className="flex items-center gap-3">
@@ -142,9 +232,11 @@ export default function AnalyticsPage() {
                       })}
                     </div>
 
-                    <div className="mt-3 text-[11px] text-[var(--viro-muted)]">
-                      API loads 30 days, UI shows last 14 for readability.
-                    </div>
+                    {daily.length === 0 ? (
+                      <div className="text-sm text-[var(--viro-muted)] mt-3">
+                        No downloads recorded yet.
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </>
