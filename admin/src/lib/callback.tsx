@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabaseServer } from "../../lib/supabase/server";
+import { supabaseServer } from "./supabase/server";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const code = typeof req.query.code === "string" ? req.query.code : null;
