@@ -1,75 +1,9 @@
 // src/pages/api/create-event.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createServerClient } from "@supabase/auth-helpers-nextjs";
-import { serialize, type SerializeOptions } from "cookie";
+import { supabaseServer } from "@/lib/supabase/server";
 
 type Ok = { ok: true; eventId: string; eventCode: string };
 type Err = { ok: false; error: string; message?: string };
-
-type CookiePair = { name: string; value: string };
-
-type CookieMethodsServerDeprecated = {
-  get(name: string): string | undefined;
-  set(name: string, value: string, options?: Partial<SerializeOptions>): void;
-  remove(name: string, options?: Partial<SerializeOptions>): void;
-};
-
-type CookieMethodsServer = {
-  getAll(): CookiePair[];
-  setAll(cookies: { name: string; value: string; options: Partial<SerializeOptions> }[]): void;
-};
-
-function appendSetCookieHeader(res: NextApiResponse, cookie: string) {
-  const prev = res.getHeader("Set-Cookie");
-
-  if (!prev) {
-    res.setHeader("Set-Cookie", cookie);
-    return;
-  }
-
-  if (typeof prev === "string") {
-    res.setHeader("Set-Cookie", [prev, cookie]);
-    return;
-  }
-
-  if (Array.isArray(prev)) {
-    res.setHeader("Set-Cookie", [...prev, cookie]);
-    return;
-  }
-
-  res.setHeader("Set-Cookie", cookie);
-}
-
-function buildCookiesAdapter(
-  req: NextApiRequest,
-  res: NextApiResponse
-): CookieMethodsServerDeprecated & CookieMethodsServer {
-  return {
-    // ✅ Deprecated API
-    get(name: string) {
-      return req.cookies[name];
-    },
-    set(name: string, value: string, options?: Partial<SerializeOptions>) {
-      appendSetCookieHeader(res, serialize(name, value, { path: "/", ...options }));
-    },
-    remove(name: string, options?: Partial<SerializeOptions>) {
-      appendSetCookieHeader(res, serialize(name, "", { path: "/", maxAge: 0, ...options }));
-    },
-
-    // ✅ New API
-    getAll() {
-      return Object.entries(req.cookies).map(([name, value]) => ({
-        name,
-        value: value ?? "",
-      }));
-    },
-    setAll(cookies: { name: string; value: string; options: Partial<SerializeOptions> }[]) {
-      cookies.forEach((c) => {
-        appendSetCookieHeader(res, serialize(c.name, c.value, { path: "/", ...c.options }));
-      });
-    },
-  };
-}
 
 function makeCode(prefix = "VE") {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -86,20 +20,7 @@ export default async function handler(
     return res.status(405).json({ ok: false, error: "MethodNotAllowed" });
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anon) {
-    return res.status(500).json({
-      ok: false,
-      error: "MissingEnv",
-      message: "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    });
-  }
-
-  const supabase = createServerClient(url, anon, {
-    cookies: buildCookiesAdapter(req, res),
-  });
+  const supabase = supabaseServer(req, res);
 
   const { data: userData, error: userError } = await supabase.auth.getUser();
 

@@ -1,8 +1,8 @@
 // src/pages/admin/index.tsx
 import Head from "next/head";
 import Link from "next/link";
-import type { GetServerSideProps } from "next";
-import { supabaseServer } from "@/lib/supabaseServer";
+import type { GetServerSideProps, NextApiRequest } from "next";
+import { supabaseServer } from "@/lib/supabase/server";
 
 type EventRow = {
   id: string;
@@ -20,7 +20,7 @@ type Props = {
 };
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-  const supabase = supabaseServer(ctx);
+  const supabase = supabaseServer(ctx.req as NextApiRequest, ctx.res as any);
 
   const { data: sessionData } = await supabase.auth.getSession();
   const session = sessionData.session;

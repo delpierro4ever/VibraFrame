@@ -2,7 +2,7 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
-import { supabaseBrowser } from "@/lib/supabaseBrowser";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Mode = "login" | "register";
 
@@ -35,6 +35,9 @@ export default function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+          },
         });
         if (error) throw error;
 
@@ -126,8 +129,8 @@ export default function AuthPage() {
               {loading
                 ? "Please wait..."
                 : mode === "login"
-                ? "Login"
-                : "Create account"}
+                  ? "Login"
+                  : "Create account"}
             </button>
           </form>
 
