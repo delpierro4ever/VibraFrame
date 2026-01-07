@@ -66,8 +66,8 @@ export default function AdminDashboard({ events, errorMsg }: Props) {
 
             <div className="flex items-center gap-2">
               <Link
-                href="/start-create"
-                className="rounded-xl bg-white text-[#000000] px-4 py-2 font-medium hover:bg-white/90"
+                href="/editor/new"
+                className="rounded-xl bg-orange-500 text-white px-4 py-2 font-medium hover:bg-orange-600 transition"
               >
                 + Create Event
               </Link>
