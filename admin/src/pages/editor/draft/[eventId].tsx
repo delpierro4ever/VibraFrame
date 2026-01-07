@@ -201,8 +201,8 @@ export default function DraftEditor() {
     publishedCode && typeof window !== "undefined"
       ? `${window.location.origin}/e/${publishedCode}`
       : publishedCode
-      ? `/e/${publishedCode}`
-      : null;
+        ? `/e/${publishedCode}`
+        : null;
 
   return (
     <>
@@ -354,6 +354,7 @@ export default function DraftEditor() {
                   x={photoPos.x}
                   y={photoPos.y}
                   onStop={(x, y) => setPhotoPos({ x, y })}
+                  bounds={false}
                 >
                   <div className="w-32 h-32 rounded-full border-2 border-dashed border-[var(--viro-primary)]
                     flex items-center justify-center text-xs text-[var(--viro-primary)] bg-black/35 backdrop-blur-sm">
@@ -366,6 +367,7 @@ export default function DraftEditor() {
                   x={textPos.x}
                   y={textPos.y}
                   onStop={(x, y) => setTextPos({ x, y })}
+                  bounds={false}
                 >
                   <div className="w-[280px] px-4 py-3 bg-black/35 backdrop-blur-sm
                     border border-[var(--viro-primary)] text-white font-semibold text-sm rounded-xl text-center">
