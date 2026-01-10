@@ -63,118 +63,135 @@ export default function NewEventPage() {
   return (
     <>
       <Head>
-        <title>ViroEvent | Create Draft</title>
-        {/* Inline style fallback for the CSS variables in case they aren't in globals.css */}
-        <style>{`
-          :root {
-            --viro-primary: #21c7e8;
-            --viro-secondary: #8b8cf9;
-          }
-        `}</style>
+        <title>Create Event | ViroEvent</title>
+        <meta name="description" content="Create a new event poster template" />
       </Head>
 
-      <main className="min-h-screen text-white bg-[#14133A]">
-        {/* Animated/Gradient Background Wrapper */}
-        <div className="min-h-screen bg-[radial-gradient(1200px_600px_at_20%_0%,rgba(33,199,232,0.18),transparent_60%),radial-gradient(900px_600px_at_80%_10%,rgba(139,140,249,0.16),transparent_55%),linear-gradient(180deg,#14133A,rgba(27,26,74,1))]">
-          
-          {/* Top Navigation Bar */}
-          <header className="sticky top-0 z-10 border-b border-white/10 bg-black/10 backdrop-blur-md">
-            <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-[linear-gradient(135deg,var(--viro-primary),var(--viro-secondary))] shadow-[0_10px_30px_rgba(33,199,232,0.25)]" />
-                <div className="leading-tight">
-                  <div className="text-lg font-semibold">ViroEvent</div>
-                  <div className="text-xs text-white/70">Create an event flyer experience</div>
+      <main className="min-h-screen text-white">
+        {/* Header */}
+        <header className="sticky top-0 z-20 border-b border-[var(--viro-border)] bg-[rgba(11,11,20,0.75)] backdrop-blur">
+          <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] border border-[var(--viro-border)]">
+                <span className="text-[var(--viro-primary)] font-black">V</span>
+              </span>
+              <div className="leading-tight">
+                <div className="font-extrabold tracking-tight">ViroEvent</div>
+                <div className="text-xs text-[var(--viro-muted)] -mt-0.5">
+                  Personalized posters
                 </div>
-              </div>
-
-              <div className="text-sm text-white/75">
-                <span className="hidden sm:inline">Step 1 of 2 — </span>
-                <span className="font-medium text-white">Create Draft</span>
               </div>
             </div>
-          </header>
 
-          {/* Form Content */}
-          <div className="mx-auto max-w-5xl px-6 py-12">
-            <div className="mx-auto max-w-2xl">
-              <h1 className="text-3xl font-semibold tracking-tight">Create Event</h1>
-              <p className="mt-2 text-white/75">
-                Start with a private draft. You’ll upload the background and position the photo + name slots next.
-              </p>
-
-              <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-sm">
-                <div className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-medium text-white/80">Event name</label>
-                    <input
-                      type="text"
-                      value={eventName}
-                      onChange={(e) => setEventName(e.target.value)}
-                      placeholder="e.g. AFCON Finals Night"
-                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-[var(--viro-primary)] focus:ring-2 focus:ring-[rgba(33,199,232,0.2)] placeholder:text-white/30"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white/80">Description (Optional)</label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Briefly describe the event..."
-                      rows={3}
-                      className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-[var(--viro-primary)] focus:ring-2 focus:ring-[rgba(33,199,232,0.2)] placeholder:text-white/30"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={onNext}
-                  disabled={!canSubmit || loading}
-                  className="mt-8 w-full rounded-xl py-4 font-bold text-[#0D0B26] shadow-[0_15px_35px_rgba(33,199,232,0.3)] transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed bg-[linear-gradient(135deg,var(--viro-primary),#2FE3FF)] hover:brightness-110"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Creating...
-                    </span>
-                  ) : "Next Step →"}
-                </button>
-
-                {err && (
-                  <div className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 animate-in fade-in slide-in-from-top-1">
-                    <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    {err}
-                  </div>
-                )}
-              </div>
-
-              {/* Progress Help */}
-              <div className="mt-8 rounded-xl bg-white/5 p-4 text-sm text-white/60">
-                <h3 className="mb-2 font-medium text-white/90">What happens next?</h3>
-                <ul className="grid gap-2 sm:grid-cols-2">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[var(--viro-primary)]">1.</span>
-                    Upload your flyer graphic (.png or .jpg)
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[var(--viro-primary)]">2.</span>
-                    Drag the dynamic slots into position
-                  </li>
-                </ul>
-              </div>
-
-              <footer className="mt-14 text-center text-xs text-white/30">
-                &copy; {new Date().getFullYear()} ViroEvent Engine. All rights reserved.
-              </footer>
+            <div className="text-sm text-[var(--viro-muted)]">
+              <span className="hidden sm:inline">Step 1 of 2 — </span>
+              <span className="font-medium text-white">Create Draft</span>
             </div>
           </div>
-        </div>
+        </header>
+
+        {/* Main Content */}
+        <section className="mx-auto max-w-3xl px-4 py-10 lg:py-16">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] mb-4">
+              <span className="text-[var(--viro-primary)] font-semibold">
+                Step 1
+              </span>
+              <span className="text-[var(--viro-muted)]">
+                • Event details
+              </span>
+            </div>
+
+            <h1 className="text-3xl lg:text-4xl font-black tracking-tight">
+              Create Event
+            </h1>
+            <p className="mt-3 text-[var(--viro-muted)] text-base lg:text-lg">
+              Start with a private draft. You'll upload the background and position the photo + name slots next.
+            </p>
+          </div>
+
+          {/* Form Card */}
+          <div className="viro-card p-6 lg:p-8 border border-[var(--viro-border)]">
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Event name
+                </label>
+                <input
+                  type="text"
+                  value={eventName}
+                  onChange={(e) => setEventName(e.target.value)}
+                  placeholder="e.g. AFCON Finals Night"
+                  className="viro-input"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Description <span className="text-[var(--viro-muted)] font-normal">(Optional)</span>
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Briefly describe the event..."
+                  className="viro-input"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={onNext}
+              disabled={!canSubmit || loading}
+              className="mt-6 w-full viro-btn viro-btn-primary"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Creating...
+                </span>
+              ) : "Next Step →"}
+            </button>
+
+            {err && (
+              <div className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--viro-danger)]/30 bg-[var(--viro-danger)]/10 px-4 py-3 text-sm text-red-200">
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {err}
+              </div>
+            )}
+          </div>
+
+          {/* Help Section */}
+          <div className="mt-8 viro-card p-5 border border-[var(--viro-border)]">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-semibold">What happens next?</div>
+              <span className="text-xs px-3 py-1 rounded-full border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)]">
+                2 steps
+              </span>
+            </div>
+
+            <div className="space-y-2 text-sm text-[var(--viro-muted)]">
+              <div className="flex items-start gap-2">
+                <span className="text-[var(--viro-primary)] font-bold">1.</span>
+                Upload your flyer graphic (.png or .jpg)
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[var(--viro-primary)] font-bold">2.</span>
+                Drag the dynamic slots into position
+              </div>
+            </div>
+          </div>
+
+          <footer className="mt-10 text-center text-xs text-[var(--viro-muted)]">
+            © {new Date().getFullYear()} ViroEvent. Powered by <span className="text-white">Alita Automations</span>.
+          </footer>
+        </section>
       </main>
     </>
   );

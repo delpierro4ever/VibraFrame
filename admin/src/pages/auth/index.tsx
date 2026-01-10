@@ -24,15 +24,17 @@ export default function AuthPage() {
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
+    setSuccessMsg(null);
     setLoading(true);
 
     try {
       if (mode === "register") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
@@ -41,9 +43,15 @@ export default function AuthPage() {
         });
         if (error) throw error;
 
-        // Depending on Supabase email confirmation setting:
-        // - If confirmation OFF => session exists immediately.
-        // - If confirmation ON => user must confirm email before session.
+        // Check if email confirmation is required
+        // If user exists but no session, email confirmation is needed
+        if (data.user && !data.session) {
+          setSuccessMsg(email.trim());
+          setLoading(false);
+          return; // Don't redirect yet
+        }
+
+        // If session exists immediately, redirect (email confirmation disabled)
         router.push(nextUrl);
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -62,6 +70,113 @@ export default function AuthPage() {
     }
   }
 
+  async function resendVerification() {
+    if (!successMsg) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: successMsg,
+        options: {
+          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+        }
+      });
+
+      if (error) throw error;
+      setMsg("Verification email resent! Please check your inbox.");
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Failed to resend email");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Success state - show verification instructions
+  if (successMsg) {
+    return (
+      <>
+        <Head>
+          <title>Verify Email | ViroEvent</title>
+        </Head>
+
+        <main className="min-h-screen flex items-center justify-center px-4 text-white">
+          <div className="w-full max-w-md">
+            <div className="viro-card border border-[var(--viro-border)] p-6 lg:p-8">
+              {/* Success Icon */}
+              <div className="flex justify-center mb-4">
+                <div className="h-16 w-16 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
+                  <svg className="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+
+              <h1 className="text-2xl font-bold text-center mb-2">
+                Account Created!
+              </h1>
+
+              <p className="text-center text-[var(--viro-muted)] mb-6">
+                We've sent a verification email to:
+              </p>
+
+              <div className="text-center mb-6 px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[var(--viro-border)]">
+                <div className="font-semibold text-[var(--viro-primary)]">{successMsg}</div>
+              </div>
+
+              <div className="space-y-3 text-sm text-[var(--viro-muted)] mb-6">
+                <div className="flex items-start gap-2">
+                  <span className="text-[var(--viro-primary)] mt-0.5">1.</span>
+                  <span>Check your inbox (and spam folder)</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[var(--viro-primary)] mt-0.5">2.</span>
+                  <span>Click the verification link in the email</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[var(--viro-primary)] mt-0.5">3.</span>
+                  <span>You'll be redirected back to login</span>
+                </div>
+              </div>
+
+              {msg && (
+                <div className="mb-4 text-sm text-green-300 rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-center">
+                  {msg}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <button
+                  onClick={resendVerification}
+                  disabled={loading}
+                  className="w-full viro-btn viro-btn-primary"
+                >
+                  {loading ? "Sending..." : "Resend Verification Email"}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSuccessMsg(null);
+                    setMode("login");
+                    setEmail("");
+                    setPassword("");
+                  }}
+                  className="w-full rounded-xl border border-[var(--viro-border)] bg-white/5 px-4 py-2 text-sm hover:bg-white/10 transition"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 text-center text-xs text-[var(--viro-muted)]">
+              Didn't receive the email? Check your spam folder or click "Resend"
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <Head>
@@ -69,21 +184,24 @@ export default function AuthPage() {
       </Head>
 
       <main className="min-h-screen flex items-center justify-center px-4 text-white">
-        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div className="w-full max-w-md viro-card border border-[var(--viro-border)] p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="text-xl font-semibold">
                 {mode === "login" ? "Organizer Login" : "Create Organizer Account"}
               </h1>
-              <p className="text-sm text-white/60 mt-1">
+              <p className="text-sm text-[var(--viro-muted)] mt-1">
                 Create events, edit templates, and view analytics.
               </p>
             </div>
 
             <button
               type="button"
-              className="text-xs underline text-white/70 hover:text-white"
-              onClick={() => setMode((m) => (m === "login" ? "register" : "login"))}
+              className="text-xs underline text-[var(--viro-muted)] hover:text-white transition"
+              onClick={() => {
+                setMode((m) => (m === "login" ? "register" : "login"));
+                setMsg(null);
+              }}
             >
               {mode === "login" ? "Register" : "Login"}
             </button>
@@ -91,9 +209,9 @@ export default function AuthPage() {
 
           <form onSubmit={submit} className="mt-5 space-y-3">
             <div>
-              <label className="text-xs text-white/60">Email</label>
+              <label className="text-xs text-[var(--viro-muted)]">Email</label>
               <input
-                className="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 outline-none focus:border-white/20"
+                className="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 outline-none focus:border-[var(--viro-primary)]/50 focus:ring-2 focus:ring-[var(--viro-primary)]/20 transition"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -104,9 +222,9 @@ export default function AuthPage() {
             </div>
 
             <div>
-              <label className="text-xs text-white/60">Password</label>
+              <label className="text-xs text-[var(--viro-muted)]">Password</label>
               <input
-                className="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 outline-none focus:border-white/20"
+                className="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 outline-none focus:border-[var(--viro-primary)]/50 focus:ring-2 focus:ring-[var(--viro-primary)]/20 transition"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -124,7 +242,7 @@ export default function AuthPage() {
 
             <button
               disabled={loading}
-              className="w-full rounded-xl bg-white text-black py-2 font-medium disabled:opacity-50"
+              className="w-full viro-btn viro-btn-primary"
             >
               {loading
                 ? "Please wait..."
@@ -134,7 +252,7 @@ export default function AuthPage() {
             </button>
           </form>
 
-          <div className="mt-4 text-xs text-white/60">
+          <div className="mt-4 text-xs text-[var(--viro-muted)]">
             By continuing, you agree to use ViroEvent responsibly.
           </div>
         </div>

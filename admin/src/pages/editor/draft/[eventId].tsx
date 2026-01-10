@@ -2,6 +2,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import DraggableBox from "../../editor/DraggableBox";
+import ResizableCircle from "../../editor/ResizableCircle";
 import type { Template } from "@/types/template";
 
 type UploadOk = { ok: true; path: string };
@@ -26,7 +27,11 @@ export default function DraftEditor() {
 
   // preview positions (px)
   const [photoPos, setPhotoPos] = useState({ x: 120, y: 90 });
+  const [photoSize, setPhotoSize] = useState(128); // diameter in pixels
   const [textPos, setTextPos] = useState({ x: 40, y: 270 });
+  const [fontSize, setFontSize] = useState(38); // font size in pixels
+  const [namePlaceholder, setNamePlaceholder] = useState("YOUR NAME");
+  const [showWatermark, setShowWatermark] = useState(true);
 
   const [bgPath, setBgPath] = useState<string | null>(null);
   const [bgPreviewUrl, setBgPreviewUrl] = useState<string | null>(null);
@@ -36,6 +41,14 @@ export default function DraftEditor() {
 
   // After publish, show share link instead of redirecting to attendee
   const [publishedCode, setPublishedCode] = useState<string | null>(null);
+
+  // Limit name to 12 characters
+  const maxNameLength = 12;
+  const handleNameChange = (value: string) => {
+    if (value.length <= maxNameLength) {
+      setNamePlaceholder(value);
+    }
+  };
 
   const saveDraftTemplate = async () => {
     if (!eventId) return;
@@ -48,7 +61,7 @@ export default function DraftEditor() {
     const previewHeight = canvasRef.current.offsetHeight || PREVIEW_H;
 
     // DraggableBox positions represent top-left of the slot in UI.
-    const PHOTO_UI_SIZE = 128; // w-32 h-32
+    const PHOTO_UI_SIZE = photoSize; // Use dynamic size
     const NAME_UI_W = 280;
     const NAME_UI_H = 56; // approx
 
@@ -79,12 +92,13 @@ export default function DraftEditor() {
         y: textYNorm,
         w: 0.82,
         h: 0.14,
-        content: "YOUR NAME",
+        content: namePlaceholder || "YOUR NAME",
         font: "Poppins",
         color: "#FFD54F",
-        size: Math.round(38 * scaleToOut), // ✅ a bit smaller than 44
+        size: Math.round(fontSize * scaleToOut),
       },
       background: { url: bgPath || "" },
+      watermark: showWatermark,
     };
 
     try {
@@ -232,27 +246,123 @@ export default function DraftEditor() {
           <aside className="bg-[var(--viro-surface)] border border-[var(--viro-border)] rounded-2xl p-6">
             <h2 className="text-lg font-semibold mb-1">Draft Editor</h2>
             <p className="text-sm text-[var(--viro-muted)] mb-6">
-              Upload background, drag slots, then publish to get a share link.
+              Upload background, customize slots, then publish to get a share link.
             </p>
 
-            <label className="block text-sm mb-2 text-[var(--viro-muted)]">
-              Flyer background (1:1)
-            </label>
+            {/* Background Upload */}
+            <div className="mb-5">
+              <label className="block text-sm font-semibold mb-2">
+                Flyer background (1:1)
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                className="block w-full text-sm text-[var(--viro-muted)]
+                  file:mr-3 file:rounded-lg file:border-0
+                  file:bg-[var(--viro-border)] file:px-4 file:py-2
+                  file:text-white hover:file:opacity-90 file:cursor-pointer"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void onPickBackground(f);
+                }}
+              />
+            </div>
 
-            <input
-              type="file"
-              accept="image/*"
-              className="block w-full text-sm text-[var(--viro-muted)]
-                file:mr-3 file:rounded-lg file:border-0
-                file:bg-[var(--viro-border)] file:px-4 file:py-2
-                file:text-white hover:file:opacity-90"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void onPickBackground(f);
-              }}
-            />
+            {/* Photo Size Control */}
+            <div className="mb-5">
+              <label className="block text-sm font-semibold mb-2">
+                Photo Frame Size
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="64"
+                  max="300"
+                  value={photoSize}
+                  onChange={(e) => setPhotoSize(Number(e.target.value))}
+                  className="flex-1 h-2 bg-[var(--viro-border)] rounded-lg appearance-none cursor-pointer
+                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                    [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--viro-primary)]
+                    [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4
+                    [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[var(--viro-primary)]
+                    [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+                />
+                <span className="text-sm font-mono text-[var(--viro-muted)] w-12 text-right">
+                  {photoSize}px
+                </span>
+              </div>
+            </div>
 
-            <div className="mt-5 space-y-3">
+            {/* Font Size Control */}
+            <div className="mb-5">
+              <label className="block text-sm font-semibold mb-2">
+                Name Font Size
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="24"
+                  max="72"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(Number(e.target.value))}
+                  className="flex-1 h-2 bg-[var(--viro-border)] rounded-lg appearance-none cursor-pointer
+                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                    [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--viro-primary)]
+                    [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4
+                    [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[var(--viro-primary)]
+                    [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+                />
+                <span className="text-sm font-mono text-[var(--viro-muted)] w-12 text-right">
+                  {fontSize}px
+                </span>
+              </div>
+            </div>
+
+            {/* Name Placeholder */}
+            <div className="mb-5">
+              <label className="block text-sm font-semibold mb-2">
+                Name Placeholder
+              </label>
+              <input
+                type="text"
+                value={namePlaceholder}
+                onChange={(e) => handleNameChange(e.target.value)}
+                placeholder="YOUR NAME"
+                maxLength={maxNameLength}
+                className="viro-input text-sm"
+              />
+              <div className="mt-1 text-xs text-[var(--viro-muted)] text-right">
+                {namePlaceholder.length}/{maxNameLength} characters
+              </div>
+            </div>
+
+            {/* Watermark Toggle */}
+            <div className="mb-5">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <div className="text-sm font-semibold">Show Watermark</div>
+                  <div className="text-xs text-[var(--viro-muted)]">
+                    "Powered by ViroEvent" at bottom corner
+                  </div>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={showWatermark}
+                    onChange={(e) => setShowWatermark(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-[var(--viro-border)] rounded-full peer
+                    peer-checked:bg-[var(--viro-primary)] peer-focus:ring-2
+                    peer-focus:ring-[var(--viro-primary)]/20 transition-colors">
+                    <div className="absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full
+                      transition-transform peer-checked:translate-x-5"></div>
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <div className="mt-6 space-y-3">
               <button
                 onClick={saveDraftTemplate}
                 disabled={loading || !eventId}
@@ -314,8 +424,8 @@ export default function DraftEditor() {
             )}
 
             <div className="mt-6 text-sm text-[var(--viro-muted)] space-y-1">
-              <div>• Drag the circle to position the photo</div>
-              <div>• Drag the rectangle to position the name</div>
+              <div>• Drag corner handle to resize photo frame</div>
+              <div>• Drag slots to position them</div>
               <div>• Publish to get a share link</div>
             </div>
           </aside>
@@ -349,18 +459,21 @@ export default function DraftEditor() {
                   </div>
                 )}
 
-                {/* Photo slot */}
-                <DraggableBox
+                {/* Photo slot - Resizable */}
+                <ResizableCircle
                   x={photoPos.x}
                   y={photoPos.y}
-                  onStop={(x, y) => setPhotoPos({ x, y })}
-                  bounds={false}
+                  size={photoSize}
+                  onMove={(x, y) => setPhotoPos({ x, y })}
+                  onResize={(newSize) => setPhotoSize(newSize)}
                 >
-                  <div className="w-32 h-32 rounded-full border-2 border-dashed border-[var(--viro-primary)]
-                    flex items-center justify-center text-xs text-[var(--viro-primary)] bg-black/35 backdrop-blur-sm">
+                  <div
+                    className="w-full h-full rounded-full border-2 border-dashed border-[var(--viro-primary)]
+                      flex items-center justify-center text-xs text-[var(--viro-primary)] bg-black/35 backdrop-blur-sm"
+                  >
                     Photo
                   </div>
-                </DraggableBox>
+                </ResizableCircle>
 
                 {/* Name slot */}
                 <DraggableBox
@@ -369,9 +482,12 @@ export default function DraftEditor() {
                   onStop={(x, y) => setTextPos({ x, y })}
                   bounds={false}
                 >
-                  <div className="w-[280px] px-4 py-3 bg-black/35 backdrop-blur-sm
-                    border border-[var(--viro-primary)] text-white font-semibold text-sm rounded-xl text-center">
-                    YOUR NAME
+                  <div
+                    className="w-[280px] px-4 py-3 bg-black/35 backdrop-blur-sm
+                      border border-[var(--viro-primary)] text-white font-semibold rounded-xl text-center"
+                    style={{ fontSize: `${fontSize * 0.4}px` }}
+                  >
+                    {namePlaceholder || "YOUR NAME"}
                   </div>
                 </DraggableBox>
               </div>

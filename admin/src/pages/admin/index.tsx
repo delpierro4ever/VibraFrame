@@ -89,38 +89,54 @@ export default function AdminDashboard({ events, errorMsg }: Props) {
 
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {events.map((e) => (
-              <Link
+              <div
                 key={e.id}
-                href={`/editor?eventId=${encodeURIComponent(e.id)}`}
                 className="rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition overflow-hidden"
               >
-                <div className="aspect-square bg-black/30 flex items-center justify-center text-white/40 text-sm">
-                  Thumbnail (next)
-                </div>
+                <Link
+                  href={`/editor?eventId=${encodeURIComponent(e.id)}`}
+                  className="block"
+                >
+                  <div className="aspect-square bg-black/30 flex items-center justify-center text-white/40 text-sm">
+                    Thumbnail (next)
+                  </div>
 
-                <div className="p-3">
-                  <div className="font-medium">{e.name ?? "Untitled Event"}</div>
+                  <div className="p-3">
+                    <div className="font-medium">{e.name ?? "Untitled Event"}</div>
 
-                  {e.description ? (
-                    <div className="text-xs text-white/60 mt-1 line-clamp-2">
-                      {e.description}
+                    {e.description ? (
+                      <div className="text-xs text-white/60 mt-1 line-clamp-2">
+                        {e.description}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-white/40 mt-1">No description</div>
+                    )}
+
+                    <div className="mt-2 flex items-center justify-between text-xs">
+                      <span className="text-white/60">{e.event_code ?? "Not published"}</span>
+                      <span className={e.published ? "text-green-300" : "text-yellow-300"}>
+                        {e.published ? "Published" : "Draft"}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="text-xs text-white/40 mt-1">No description</div>
-                  )}
 
-                  <div className="mt-2 flex items-center justify-between text-xs">
-                    <span className="text-white/60">{e.event_code ?? "Not published"}</span>
-                    <span className={e.published ? "text-green-300" : "text-yellow-300"}>
-                      {e.published ? "Published" : "Draft"}
-                    </span>
+                    <div className="mt-2 text-[11px] text-white/50">
+                      {e.status ? `Status: ${e.status}` : ""}
+                    </div>
                   </div>
+                </Link>
 
-                  <div className="mt-2 text-[11px] text-white/50">
-                    {e.status ? `Status: ${e.status}` : ""}
+                {/* Analytics Button */}
+                {e.published && e.event_code && (
+                  <div className="px-3 pb-3">
+                    <Link
+                      href={`/analytics/${encodeURIComponent(e.event_code)}`}
+                      className="block text-center text-xs px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition"
+                    >
+                      📊 View Analytics
+                    </Link>
                   </div>
-                </div>
-              </Link>
+                )}
+              </div>
             ))}
           </div>
 
