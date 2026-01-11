@@ -4,6 +4,8 @@ import Link from "next/link";
 import type { GetServerSideProps, NextApiRequest } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 
+import type { Template } from "@/types/template";
+
 type EventRow = {
   id: string;
   event_code: string | null;
@@ -12,6 +14,8 @@ type EventRow = {
   published: boolean | null;
   created_at: string | null;
   status: string | null;
+  template: Template | null;
+  backgroundUrl?: string | null;
 };
 
 type Props = {
@@ -36,12 +40,33 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 
   const { data, error } = await supabase
     .from("events")
-    .select("id,event_code,name,description,published,created_at,status")
+    .select("id,event_code,name,description,published,created_at,status,template")
     .order("created_at", { ascending: false });
+
+  const events = (data ?? []) as EventRow[];
+
+  // Batch generate signed URLs for backgrounds if they exist
+  const eventsWithBackgrounds = events.filter(e => e.template?.background?.url);
+  if (eventsWithBackgrounds.length > 0) {
+    const paths = eventsWithBackgrounds.map(e => e.template!.background!.url!);
+    const { data: signedData } = await supabase.storage
+      .from("flyer-backgrounds")
+      .createSignedUrls(paths, 3600); // 1 hour
+
+    if (signedData) {
+      signedData.forEach((s, idx) => {
+        if (s.signedUrl) {
+          const event = eventsWithBackgrounds[idx];
+          const fullEvent = events.find(e => e.id === event.id);
+          if (fullEvent) fullEvent.backgroundUrl = s.signedUrl;
+        }
+      });
+    }
+  }
 
   return {
     props: {
-      events: (data ?? []) as EventRow[],
+      events,
       errorMsg: error?.message ?? null,
     },
   };
@@ -94,11 +119,22 @@ export default function AdminDashboard({ events, errorMsg }: Props) {
                 className="rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition overflow-hidden"
               >
                 <Link
-                  href={`/editor?eventId=${encodeURIComponent(e.id)}`}
+                  href={`/editor/draft/${encodeURIComponent(e.id)}`}
                   className="block"
                 >
-                  <div className="aspect-square bg-black/30 flex items-center justify-center text-white/40 text-sm">
-                    Thumbnail (next)
+                  <div className="aspect-square bg-black/30 relative flex items-center justify-center text-white/40 text-sm overflow-hidden">
+                    {e.backgroundUrl ? (
+                      <img
+                        src={e.backgroundUrl}
+                        alt={e.name || "Event Background"}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 opacity-40">
+                        <span className="text-3xl font-black text-[var(--viro-primary)]">V</span>
+                        <span>No Background</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-3">

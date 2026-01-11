@@ -39,9 +39,4 @@ export type Template = {
    * Example: events/<eventId>/background/original.jpg
    */
   background?: { url?: string };
-
-  /**
-   * Whether to show "Powered by ViroEvent" watermark
-   */
-  watermark?: boolean;
 };

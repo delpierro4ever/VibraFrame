@@ -30,8 +30,8 @@ export default function DraftEditor() {
   const [photoSize, setPhotoSize] = useState(128); // diameter in pixels
   const [textPos, setTextPos] = useState({ x: 40, y: 270 });
   const [fontSize, setFontSize] = useState(38); // font size in pixels
+  const [textColor, setTextColor] = useState("#FFD54F");
   const [namePlaceholder, setNamePlaceholder] = useState("YOUR NAME");
-  const [showWatermark, setShowWatermark] = useState(true);
 
   const [bgPath, setBgPath] = useState<string | null>(null);
   const [bgPreviewUrl, setBgPreviewUrl] = useState<string | null>(null);
@@ -94,11 +94,10 @@ export default function DraftEditor() {
         h: 0.14,
         content: namePlaceholder || "YOUR NAME",
         font: "Poppins",
-        color: "#FFD54F",
+        color: textColor,
         size: Math.round(fontSize * scaleToOut),
       },
       background: { url: bgPath || "" },
-      watermark: showWatermark,
     };
 
     try {
@@ -336,30 +335,22 @@ export default function DraftEditor() {
               </div>
             </div>
 
-            {/* Watermark Toggle */}
+            {/* Font Color Picker */}
             <div className="mb-5">
-              <label className="flex items-center justify-between cursor-pointer">
-                <div>
-                  <div className="text-sm font-semibold">Show Watermark</div>
-                  <div className="text-xs text-[var(--viro-muted)]">
-                    "Powered by ViroEvent" at bottom corner
-                  </div>
-                </div>
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={showWatermark}
-                    onChange={(e) => setShowWatermark(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-[var(--viro-border)] rounded-full peer
-                    peer-checked:bg-[var(--viro-primary)] peer-focus:ring-2
-                    peer-focus:ring-[var(--viro-primary)]/20 transition-colors">
-                    <div className="absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full
-                      transition-transform peer-checked:translate-x-5"></div>
-                  </div>
-                </div>
+              <label className="block text-sm font-semibold mb-2">
+                Name Font Color
               </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={textColor}
+                  onChange={(e) => setTextColor(e.target.value)}
+                  className="w-10 h-10 rounded-lg border-2 border-[var(--viro-border)] bg-transparent cursor-pointer p-0.5"
+                />
+                <span className="text-sm font-mono text-[var(--viro-muted)] uppercase">
+                  {textColor}
+                </span>
+              </div>
             </div>
 
             <div className="mt-6 space-y-3">
@@ -484,8 +475,8 @@ export default function DraftEditor() {
                 >
                   <div
                     className="w-[280px] px-4 py-3 bg-black/35 backdrop-blur-sm
-                      border border-[var(--viro-primary)] text-white font-semibold rounded-xl text-center"
-                    style={{ fontSize: `${fontSize * 0.4}px` }}
+                      border border-[var(--viro-primary)] font-semibold rounded-xl text-center"
+                    style={{ fontSize: `${fontSize * 0.4}px`, color: textColor }}
                   >
                     {namePlaceholder || "YOUR NAME"}
                   </div>

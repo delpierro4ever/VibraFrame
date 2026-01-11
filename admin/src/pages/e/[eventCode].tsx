@@ -94,41 +94,21 @@ function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
-// ✅ Watermark helper (NEW)
-function drawWatermark(ctx: CanvasRenderingContext2D, text: string) {
+// ✅ Watermark helper - Simple white text with opacity
+function drawWatermark(ctx: CanvasRenderingContext2D) {
   ctx.save();
 
-  const padX = 18;
-  const padY = 10;
-  const h = 44;
+  // Set 20% opacity
+  ctx.globalAlpha = 0.2;
 
-  ctx.font = "700 28px Arial, sans-serif";
-  const w = Math.ceil(ctx.measureText(text).width) + padX * 2;
-
-  // bottom-left placement
-  const x = 32;
-  const y = OUT_H - (h + 32);
-
-  // pill background
-  ctx.globalAlpha = 0.9;
-  ctx.fillStyle = "rgba(0,0,0,0.55)";
-  const r = 14;
-
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-  ctx.fill();
-
-  // text
-  ctx.globalAlpha = 1;
+  // White text, bold, centered at bottom
   ctx.fillStyle = "#ffffff";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, x + padX, y + h / 2);
+  ctx.font = "bold 24px Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+
+  // Draw text centered at bottom with some padding
+  ctx.fillText("Alita Automations", OUT_W / 2, OUT_H - 30);
 
   ctx.restore();
 }
@@ -440,7 +420,7 @@ export default function EventCodePage() {
       ctx.fillText(name.trim().toUpperCase(), textXOut, textYOut);
 
       // ✅ WATERMARK (NEW)
-      drawWatermark(ctx, "Create yours: viroevent.com");
+      drawWatermark(ctx);
 
       canvas.toBlob(
         (blob) => {
