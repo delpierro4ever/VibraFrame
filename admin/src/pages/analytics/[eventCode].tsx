@@ -125,8 +125,8 @@ export default function AnalyticsPage() {
         <div className="mx-auto max-w-3xl">
           {/* top nav */}
           <div className="flex items-center justify-between mb-4">
-            <Link href="/" className="text-sm text-[var(--viro-muted)] hover:opacity-90">
-              ← Back to home
+            <Link href="/admin" className="text-sm text-[var(--viro-muted)] hover:opacity-90">
+              ← Back to dashboard
             </Link>
 
             <div className="flex items-center gap-2">

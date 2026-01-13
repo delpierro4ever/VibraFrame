@@ -124,11 +124,43 @@ export default function AdminDashboard({ events, errorMsg }: Props) {
                 >
                   <div className="aspect-square bg-black/30 relative flex items-center justify-center text-white/40 text-sm overflow-hidden">
                     {e.backgroundUrl ? (
-                      <img
-                        src={e.backgroundUrl}
-                        alt={e.name || "Event Background"}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
+                      <>
+                        <img
+                          src={e.backgroundUrl}
+                          alt={e.name || "Event Background"}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        {/* Preview Overlays */}
+                        {e.template?.photo && (
+                          <div
+                            className="absolute border-2 border-[var(--viro-primary)] bg-black/20"
+                            style={{
+                              left: `${(e.template.photo.x ?? 0.5) * 100}%`,
+                              top: `${(e.template.photo.y ?? 0.35) * 100}%`,
+                              width: `${((e.template.photo.size ?? 220) / (e.template.canvas?.width ?? 1080)) * 100}%`,
+                              height: `${((e.template.photo.size ?? 220) / (e.template.canvas?.width ?? 1080)) * 100}%`,
+                              transform: "translate(-50%, -50%)",
+                              borderRadius: e.template.photo.shape === "circle" ? "50%" : "4px",
+                            }}
+                          >
+                            <div className="w-full h-full flex items-center justify-center text-[8px] opacity-40">Photo</div>
+                          </div>
+                        )}
+                        {e.template?.text && (
+                          <div
+                            className="absolute border border-white/30 bg-white/10 flex items-center justify-center text-[6px] font-bold text-white/50"
+                            style={{
+                              left: `${(e.template.text.x ?? 0.5) * 100}%`,
+                              top: `${(e.template.text.y ?? 0.78) * 100}%`,
+                              width: `${(e.template.text.w ?? 0.82) * 100}%`,
+                              height: `${(e.template.text.h ?? 0.14) * 100}%`,
+                              transform: "translate(-50%, -50%)",
+                            }}
+                          >
+                            NAME SLOT
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <div className="flex flex-col items-center gap-2 opacity-40">
                         <span className="text-3xl font-black text-[var(--viro-primary)]">V</span>

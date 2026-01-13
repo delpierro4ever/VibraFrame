@@ -98,17 +98,17 @@ function downloadBlob(blob: Blob, filename: string) {
 function drawWatermark(ctx: CanvasRenderingContext2D) {
   ctx.save();
 
-  // Set 20% opacity
-  ctx.globalAlpha = 0.2;
+  // Set 25% opacity
+  ctx.globalAlpha = 0.25;
 
   // White text, bold, centered at bottom
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 24px Arial, sans-serif";
+  ctx.font = "bold 42px Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
 
   // Draw text centered at bottom with some padding
-  ctx.fillText("Alita Automations", OUT_W / 2, OUT_H - 30);
+  ctx.fillText("ViroEvents", OUT_W / 2, OUT_H - 40);
 
   ctx.restore();
 }

@@ -40,7 +40,7 @@ export default function HomePage() {
       <main className="min-h-screen text-white">
         {/* Header */}
         <header className="sticky top-0 z-20 border-b border-[var(--viro-border)] bg-[rgba(11,11,20,0.75)] backdrop-blur">
-          <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
+          <div className="mx-auto max-w-[1400px] px-4 py-4 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(255,255,255,0.06)] border border-[var(--viro-border)]">
                 <span className="text-[var(--viro-primary)] font-black">V</span>
@@ -65,9 +65,9 @@ export default function HomePage() {
         </header>
 
         {/* Hero */}
-        <section className="mx-auto max-w-6xl px-4 pt-10 pb-10 lg:pt-16">
-          <div className="grid lg:grid-cols-2 gap-6 lg:gap-10 items-center">
-            <div className="space-y-4">
+        <section className="mx-auto max-w-[1400px] px-4 pt-10 pb-10 lg:pt-16">
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-16 items-center">
+            <div className="space-y-6 animate-fade-in opacity-0">
               <div className="inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)]">
                 <span className="text-[var(--viro-primary)] font-semibold">
                   Mobile-first
@@ -144,7 +144,7 @@ export default function HomePage() {
             </div>
 
             {/* How it works */}
-            <div className="viro-card p-5 lg:p-6 border border-[var(--viro-border)]">
+            <div className="viro-card p-5 lg:p-8 border border-[var(--viro-border)] animate-fade-in opacity-0 animate-delay-200">
               <div className="flex items-center justify-between mb-4">
                 <div className="text-sm font-semibold">How it works</div>
                 <span className="text-xs px-3 py-1 rounded-full border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)]">
@@ -214,8 +214,8 @@ export default function HomePage() {
         </section>
 
         {/* CTA */}
-        <section className="mx-auto max-w-6xl px-4 pb-14">
-          <div className="viro-card p-6 lg:p-8 border border-[var(--viro-border)]">
+        <section className="mx-auto max-w-[1400px] px-4 pb-14 animate-fade-in opacity-0 animate-delay-300">
+          <div className="viro-card p-6 lg:p-10 border border-[var(--viro-border)]">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div>
                 <div className="text-xl font-black">Ready to create your first event?</div>
@@ -244,7 +244,7 @@ export default function HomePage() {
 
         {/* Footer */}
         <footer className="border-t border-[var(--viro-border)] bg-[rgba(11,11,20,0.55)]">
-          <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-[var(--viro-muted)] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="mx-auto max-w-[1400px] px-4 py-8 text-sm text-[var(--viro-muted)] flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
               © {year} <span className="text-white font-semibold">ViroEvent</span>. Powered by{" "}
               <span className="text-white">Alita Automations</span>.
