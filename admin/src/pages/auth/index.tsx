@@ -11,6 +11,25 @@ function getNextParam(v: string | string[] | undefined): string {
   return Array.isArray(v) ? v[0] : v;
 }
 
+import type { GetServerSideProps, NextApiRequest } from "next";
+import { supabaseServer } from "@/lib/supabase/server";
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const supabase = supabaseServer(ctx.req as NextApiRequest, ctx.res as any);
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session) {
+    return {
+      redirect: {
+        destination: "/admin",
+        permanent: false,
+      },
+    };
+  }
+
+  return { props: {} };
+};
+
 export default function AuthPage() {
   const router = useRouter();
   const supabase = useMemo(() => supabaseBrowser(), []);
@@ -52,7 +71,7 @@ export default function AuthPage() {
         }
 
         // If session exists immediately, redirect (email confirmation disabled)
-        router.push(nextUrl);
+        router.replace(nextUrl);
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
@@ -60,7 +79,7 @@ export default function AuthPage() {
         });
         if (error) throw error;
 
-        router.push(nextUrl);
+        router.replace(nextUrl);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Authentication failed";

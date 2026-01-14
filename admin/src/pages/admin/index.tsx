@@ -122,13 +122,13 @@ export default function AdminDashboard({ events, errorMsg }: Props) {
                   href={`/editor/draft/${encodeURIComponent(e.id)}`}
                   className="block"
                 >
-                  <div className="aspect-square bg-black/30 relative flex items-center justify-center text-white/40 text-sm overflow-hidden">
+                  <div className={`aspect-square relative flex items-center justify-center text-white/40 text-sm overflow-hidden group ${e.backgroundUrl ? '' : 'bg-black/30'}`}>
                     {e.backgroundUrl ? (
                       <>
                         <img
                           src={e.backgroundUrl}
                           alt={e.name || "Event Background"}
-                          className="absolute inset-0 w-full h-full object-cover"
+                          className="absolute inset-0 w-full h-full object-cover transition duration-300 group-hover:scale-105"
                         />
                         {/* Preview Overlays */}
                         {e.template?.photo && (

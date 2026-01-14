@@ -211,29 +211,45 @@ export default function AnalyticsPage() {
 
                 {/* chart */}
                 <div className="mt-6">
-                  <div className="text-sm font-semibold mb-2">Daily downloads ({days} days)</div>
+                  <div className="text-sm font-semibold mb-2">Daily Downloads ({days} days)</div>
 
-                  <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-4">
-                    <div className="space-y-2">
-                      {daily.map((d) => {
-                        const pct = Math.round((100 * (d.downloads || 0)) / maxDay);
+                  <div className="rounded-xl border border-[var(--viro-border)] bg-[rgba(255,255,255,0.04)] p-6">
+                    <div className="h-40 flex items-end gap-1">
+                      {daily.map((d, i) => {
+                        const pct = maxDay > 0 ? Math.round((100 * (d.downloads || 0)) / maxDay) : 0;
+                        const isToday = i === daily.length - 1;
                         return (
-                          <div key={d.day} className="flex items-center gap-3">
-                            <div className="w-[92px] text-xs text-[var(--viro-muted)]">{d.day}</div>
-                            <div className="flex-1 h-3 rounded-full bg-black/30 overflow-hidden">
-                              <div
-                                className="h-full bg-[var(--viro-primary)]"
-                                style={{ width: `${pct}%` }}
-                              />
+                          <div
+                            key={d.day}
+                            className="flex-1 flex flex-col items-center justify-end group relative"
+                            style={{ height: "100%" }}
+                          >
+                            {/* Bar */}
+                            <div
+                              className={`w-full max-w-[8px] rounded-t-sm transition-all duration-500 ${isToday ? 'bg-[var(--viro-primary)]' : 'bg-[var(--viro-primary)]/40 hover:bg-[var(--viro-primary)]/60'}`}
+                              style={{ height: `${Math.max(pct, 4)}%` }}
+                            ></div>
+
+                            {/* Hover Tooltip */}
+                            <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition pointer-events-none z-10">
+                              <div className="bg-black/80 backdrop-blur border border-white/10 text-xs px-2 py-1 rounded whitespace-nowrap">
+                                <span className="text-[var(--viro-muted)]">{d.day}:</span> <span className="font-bold">{d.downloads}</span>
+                              </div>
                             </div>
-                            <div className="w-10 text-right text-xs text-white/90">{d.downloads}</div>
                           </div>
                         );
                       })}
                     </div>
 
+                    {/* X-Axis Labels (show only some to avoid crowding) */}
+                    <div className="mt-2 flex justify-between text-[10px] text-[var(--viro-muted)]">
+                      <div>{daily[0]?.day}</div>
+                      <div>{daily[Math.floor(daily.length / 2)]?.day}</div>
+                      <div>{daily[daily.length - 1]?.day}</div>
+                    </div>
+
                     {daily.length === 0 ? (
-                      <div className="text-sm text-[var(--viro-muted)] mt-3">
+                      <div className="text-sm text-[var(--viro-muted)] text-center mt-3">
                         No downloads recorded yet.
                       </div>
                     ) : null}

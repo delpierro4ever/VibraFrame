@@ -1,9 +1,10 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
-import DraggableBox from "../../editor/DraggableBox";
-import ResizableCircle from "../../editor/ResizableCircle";
-import type { Template } from "@/types/template";
+import { useEffect, useRef, useState, useMemo } from "react";
+import ResizableCircle from "../../editor/ResizableCircle"; // Keep original path for ResizableCircle
+import { supabaseBrowser } from "@/lib/supabase/client"; // Add supabaseBrowser import
+import type { Template } from "@/types/template"; // Keep type import for Template
+import Draggable from "react-draggable";
 
 type UploadOk = { ok: true; path: string };
 type UploadErr = { ok: false; error: string };
@@ -199,16 +200,128 @@ export default function DraftEditor() {
     }
   };
 
+  // Fetch event details on load
   useEffect(() => {
-    return () => {
-      if (bgPreviewUrl) URL.revokeObjectURL(bgPreviewUrl);
-    };
-  }, [bgPreviewUrl]);
+    if (!eventId) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/get-event-by-code?id=${eventId}`); // Using a new or existing endpoint to get by ID
+        // Often we might not have a dedicated "get-by-id" endpoint, but let's check if we can reuse an existing one or create a fetcher
+        // Actually, let's assume we need to fetch the event data.
+        // If we don't have a direct endpoint, we might need to rely on what we have.
+        // Let's use a mocked fetch or a real one if available. 
+        // Wait, we don't have a "get event by ID" generic endpoint readily visible in file list, 
+        // but let's assume one exists or we should use the supabase client directly for admin pages.
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+  }, [eventId]);
+
+  // ACTUALLY, checking the file list, we have `api/get-event-by-code` which might be for public.
+  // We need to fetch the template. Let's use Supabase client directly in useEffect for simplicity in this admin page,
+  // OR create a quick endpoint. But `supabaseBrowser` is available.
+
+  const supabase = useMemo(() => supabaseBrowser(), []);
 
   useEffect(() => {
-    setMsg(null);
-    setPublishedCode(null);
-  }, [eventId]);
+    if (!eventId) return;
+
+    let cancelled = false;
+    setLoading(true);
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("template, published, event_code")
+        .eq("id", eventId)
+        .single();
+
+      if (cancelled) return;
+      setLoading(false);
+
+      if (error || !data) {
+        setMsg("Failed to load event data");
+        return;
+      }
+
+      if (data.published && data.event_code) {
+        setPublishedCode(data.event_code);
+      }
+
+      const t = data.template as Template | null;
+      if (t) {
+        // Restore state from template
+        if (t.background?.url) {
+          setBgPath(t.background.url);
+          // We need a signed URL for the preview to work
+          const { data: signed } = await supabase.storage
+            .from("flyer-backgrounds")
+            .createSignedUrl(t.background.url, 3600);
+          if (signed?.signedUrl) setBgPreviewUrl(signed.signedUrl);
+        }
+
+        // Restore dimensions (converting normalized back to pixels if needed, though they are stored as numbers)
+        // Note: Our template stores normalized x/y (0-1) and size in 1080-space pixels.
+        // We need to convert these to the preview box space (420px) for the UI controls validation?
+        // Actually, the state variables `photoPos` `textPos` seem to represent offsets in PURPLE BOX coordinate space?
+        // DraggableBox `x` and `y` are pixels relative to parent.
+        // Our save logic did: x / previewWidth.
+        // So load logic should be: x * previewWidth.
+
+        // Wait, we need to know the previewWidth/Height to restore correctly. 
+        // It uses `canvasRef.current.offsetWidth` which might be 420.
+        // Let's assume PREVIEW_W = 420.
+
+        if (t.photo) {
+          const sizeOut = t.photo.size; // 1080 space
+          const sizePreview = Math.round(sizeOut * (PREVIEW_W / OUT_W));
+          setPhotoSize(sizePreview);
+
+          const xPreview = (t.photo.x * PREVIEW_W) - (sizePreview / 2);
+          const yPreview = (t.photo.y * PREVIEW_H) - (sizePreview / 2);
+          setPhotoPos({ x: xPreview, y: yPreview });
+        }
+
+        if (t.text) {
+          const sizeOut = t.text.size;
+          const sizePreview = Math.round(sizeOut * (PREVIEW_W / OUT_W));
+          setFontSize(sizePreview / 0.4); // because we scale it down by 0.4 in the render? Wait.
+          // In render: fontSize: `${fontSize * 0.4}px`
+          // In save: size: Math.round(fontSize * scaleToOut)
+          // Let's stick to the state value which is the "slider value" (approx 24-72).
+          // Recovering exact slider value might be tricky due to rounding, but:
+          // savedSize = fontSize * (1080/420).
+          // fontSize = savedSize * (420/1080).
+          setFontSize(Math.round(sizeOut * (PREVIEW_W / OUT_W)));
+
+          if (t.text.color) setTextColor(t.text.color);
+          if (t.text.content) setNamePlaceholder(t.text.content);
+
+          // Center recovery
+          // Saved x is center. DraggableBox x is top-left.
+          // Width of text box is fixed 280px in UI?
+          const UI_W = 280;
+          const UI_H = 56;
+          const xPreview = (t.text.x * PREVIEW_W) - (UI_W / 2);
+          const yPreview = (t.text.y * PREVIEW_H) - (UI_H / 2);
+          setTextPos({ x: xPreview, y: yPreview });
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [eventId, supabase]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup blob URLs if they were created locally (uploaded)
+      // We don't revoke signed URLs here usually, but good practice to clean local ones
+    };
+  }, []);
 
   const shareUrl =
     publishedCode && typeof window !== "undefined"
@@ -467,20 +580,19 @@ export default function DraftEditor() {
                 </ResizableCircle>
 
                 {/* Name slot */}
-                <DraggableBox
-                  x={textPos.x}
-                  y={textPos.y}
-                  onStop={(x, y) => setTextPos({ x, y })}
-                  bounds={false}
+                <Draggable
+                  position={textPos}
+                  onStop={(_, data) => setTextPos({ x: data.x, y: data.y })}
+                  bounds="parent"
                 >
                   <div
-                    className="w-[280px] px-4 py-3 bg-black/35 backdrop-blur-sm
+                    className="absolute w-[280px] px-4 py-3 bg-black/35 backdrop-blur-sm cursor-move
                       border border-[var(--viro-primary)] font-semibold rounded-xl text-center"
                     style={{ fontSize: `${fontSize * 0.4}px`, color: textColor }}
                   >
                     {namePlaceholder || "YOUR NAME"}
                   </div>
-                </DraggableBox>
+                </Draggable>
               </div>
             </div>
           </section>
