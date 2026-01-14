@@ -57,7 +57,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   // 3. Create signed URLs (batch)
   if (paths.length > 0) {
     const { data: signedData } = await supabase.storage
-      .from("flyer-backgrounds")
+      .from("vf-event-assets")
       .createSignedUrls(paths, 3600); // 1 hour link
 
     if (signedData) {

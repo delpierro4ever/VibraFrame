@@ -261,7 +261,7 @@ export default function DraftEditor() {
           setBgPath(t.background.url);
           // We need a signed URL for the preview to work
           const { data: signed } = await supabase.storage
-            .from("flyer-backgrounds")
+            .from("vf-event-assets")
             .createSignedUrl(t.background.url, 3600);
           if (signed?.signedUrl) setBgPreviewUrl(signed.signedUrl);
         }

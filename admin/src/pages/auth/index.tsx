@@ -1,7 +1,7 @@
 // src/pages/auth/index.tsx
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Mode = "login" | "register";
@@ -15,6 +15,9 @@ import type { GetServerSideProps, NextApiRequest } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  // Prevent caching of the auth page to ensure server-side redirect always runs
+  ctx.res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+
   const supabase = supabaseServer(ctx.req as NextApiRequest, ctx.res as any);
   const { data: { session } } = await supabase.auth.getSession();
 
@@ -33,6 +36,18 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
 export default function AuthPage() {
   const router = useRouter();
   const supabase = useMemo(() => supabaseBrowser(), []);
+
+  // Client-side protection: if user is logged in, redirect to admin immediately
+  // This handles the "Back" button case where the page loads from bfcache
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.replace("/admin");
+      }
+    };
+    checkUser();
+  }, [supabase, router]);
 
   const next = getNextParam(router.query.next);
   const nextUrl = next && next.startsWith("/") ? next : "/admin";
