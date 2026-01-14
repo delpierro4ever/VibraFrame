@@ -45,24 +45,40 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 
   const events = (data ?? []) as EventRow[];
 
-  // Batch generate signed URLs for backgrounds if they exist
-  const eventsWithBackgrounds = events.filter(e => e.template?.background?.url);
-  if (eventsWithBackgrounds.length > 0) {
-    const paths = eventsWithBackgrounds.map(e => e.template!.background!.url!);
+  // 2. Collect background paths
+  const paths: string[] = [];
+  events.forEach((e) => {
+    const url = e.template?.background?.url;
+    if (typeof url === "string" && url.length > 0) {
+      paths.push(url);
+    }
+  });
+
+  // 3. Create signed URLs (batch)
+  if (paths.length > 0) {
     const { data: signedData } = await supabase.storage
       .from("flyer-backgrounds")
-      .createSignedUrls(paths, 3600); // 1 hour
+      .createSignedUrls(paths, 3600); // 1 hour link
 
     if (signedData) {
-      signedData.forEach((s, idx) => {
-        if (s.signedUrl) {
-          const event = eventsWithBackgrounds[idx];
-          const fullEvent = events.find(e => e.id === event.id);
-          if (fullEvent) fullEvent.backgroundUrl = s.signedUrl;
+      // correctly map path -> signedUrl
+      // createSignedUrls returns { error, path, signedUrl }[]
+      const map = new Map<string, string>();
+      signedData.forEach((item) => {
+        if (item.path && item.signedUrl) {
+          map.set(item.path, item.signedUrl);
+        }
+      });
+
+      // assign back to events
+      events.forEach((e) => {
+        const url = e.template?.background?.url;
+        if (url && map.has(url)) {
+          e.backgroundUrl = map.get(url)!;
         }
       });
     }
-  }
+  };
 
   return {
     props: {

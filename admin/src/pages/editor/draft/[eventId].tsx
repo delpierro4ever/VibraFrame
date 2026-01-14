@@ -33,6 +33,8 @@ export default function DraftEditor() {
   const [fontSize, setFontSize] = useState(38); // font size in pixels
   const [textColor, setTextColor] = useState("#FFD54F");
   const [namePlaceholder, setNamePlaceholder] = useState("YOUR NAME");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragRef = useRef<HTMLDivElement>(null); // Ref for draggable node
 
   const [bgPath, setBgPath] = useState<string | null>(null);
   const [bgPreviewUrl, setBgPreviewUrl] = useState<string | null>(null);
@@ -580,12 +582,15 @@ export default function DraftEditor() {
                 </ResizableCircle>
 
                 {/* Name slot */}
+                {/* Name slot */}
                 <Draggable
+                  nodeRef={dragRef}
                   position={textPos}
                   onStop={(_, data) => setTextPos({ x: data.x, y: data.y })}
                   bounds="parent"
                 >
                   <div
+                    ref={dragRef}
                     className="absolute w-[280px] px-4 py-3 bg-black/35 backdrop-blur-sm cursor-move
                       border border-[var(--viro-primary)] font-semibold rounded-xl text-center"
                     style={{ fontSize: `${fontSize * 0.4}px`, color: textColor }}
