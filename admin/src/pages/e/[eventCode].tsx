@@ -1,4 +1,4 @@
-// admin/src/pages/e/[eventCode].tsx
+// Full corrected file content for admin/src/pages/e/[eventCode].tsx
 import Head from "next/head";
 import { useRouter } from "next/router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -41,13 +41,15 @@ function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
 }
 
+// Modified coverDraw to support focus point
 function coverDraw(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
   dx: number,
   dy: number,
   dw: number,
-  dh: number
+  dh: number,
+  focus?: { x: number; y: number }
 ) {
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
@@ -57,8 +59,18 @@ function coverDraw(
   const sw = dw / scale;
   const sh = dh / scale;
 
-  const sx = (iw - sw) / 2;
-  const sy = (ih - sh) / 2;
+  // Default center (0.5)
+  const fx = focus?.x ?? 0.5;
+  const fy = focus?.y ?? 0.5;
+
+  // Calculate source x/y based on focus point
+  // We want the focus point (fx * iw) to be at the center of the crop (sw / 2)
+  let sx = (iw * fx) - (sw / 2);
+  let sy = (ih * fy) - (sh / 2);
+
+  // Clamp to ensure we don't go outside image bounds
+  sx = Math.max(0, Math.min(iw - sw, sx));
+  sy = Math.max(0, Math.min(ih - sh, sy));
 
   ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 }
@@ -113,12 +125,35 @@ function drawWatermark(ctx: CanvasRenderingContext2D) {
   ctx.restore();
 }
 
+// Helper to detect face
+async function detectFace(file: File): Promise<{ x: number; y: number } | null> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // Assume Python service is running on localhost:8000
+    // In production, this URL should be an env var or relative proxy 
+    const res = await fetch("http://localhost:8000/detect-face", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+
+    if (data.ok && data.found && data.face) {
+      return { x: data.face.x, y: data.face.y };
+    }
+  } catch (e) {
+    console.warn("Face detection failed:", e);
+  }
+  return null;
+}
+
 export default function EventCodePage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const previewRef = useRef<HTMLDivElement>(null);
   const [previewPx, setPreviewPx] = useState(420);
 
@@ -134,6 +169,10 @@ export default function EventCodePage() {
   const [name, setName] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+
+  // New state for face detection
+  const [faceCenter, setFaceCenter] = useState<{ x: number; y: number } | null>(null);
+  const [processingPhoto, setProcessingPhoto] = useState(false);
 
   // ✅ Share state
   const [didDownload, setDidDownload] = useState(false);
@@ -348,17 +387,35 @@ export default function EventCodePage() {
     textShadow: "0 2px 14px rgba(0,0,0,0.55)",
   };
 
+  // Defined above: previewPhotoStyle used for object-position logic
+  const previewPhotoStyle: React.CSSProperties = {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    objectPosition: faceCenter ? `${faceCenter.x * 100}% ${faceCenter.y * 100}%` : "50% 50%",
+    transition: "object-position 0.5s ease"
+  };
+
   const pickPhoto = () => fileInputRef.current?.click();
 
-  const onPhotoFile = (file: File) => {
+  const onPhotoFile = async (file: File) => {
     if (photoUrl) URL.revokeObjectURL(photoUrl);
     setPhotoUrl(URL.createObjectURL(file));
     setDidDownload(false);
     setResultBlob(null);
     setShareNotice(null);
 
+    // Face detection
+    setFaceCenter(null);
     if (resultPreviewUrl) URL.revokeObjectURL(resultPreviewUrl);
     setResultPreviewUrl(null);
+
+    setProcessingPhoto(true);
+    const face = await detectFace(file);
+    if (face) {
+      setFaceCenter(face);
+    }
+    setProcessingPhoto(false);
   };
 
   const generateAndDownload = async () => {
@@ -408,7 +465,8 @@ export default function EventCodePage() {
 
       const dx = photoXOut - r;
       const dy = photoYOut - r;
-      coverDraw(ctx, userImg, dx, dy, photoSizeOut, photoSizeOut);
+      // Pass faceCenter
+      coverDraw(ctx, userImg, dx, dy, photoSizeOut, photoSizeOut, faceCenter || undefined);
 
       ctx.restore();
 
@@ -419,7 +477,7 @@ export default function EventCodePage() {
       ctx.textBaseline = "middle";
       ctx.fillText(name.trim().toUpperCase(), textXOut, textYOut);
 
-      // ✅ WATERMARK (NEW)
+      // ✅ WATERMARK
       drawWatermark(ctx);
 
       canvas.toBlob(
@@ -662,10 +720,22 @@ export default function EventCodePage() {
                 />
 
                 {photoUrl ? (
-                  <img src={photoUrl} alt="photo" className="w-full h-full object-cover" />
+                  <img
+                    src={photoUrl}
+                    alt="photo"
+                    className="w-full h-full"
+                    style={previewPhotoStyle}
+                  />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white/80 text-xs">
-                    Tap to upload
+                  <div className="w-full h-full flex items-center justify-center text-white/80 text-xs text-center flex-col gap-1 p-2">
+                    <span>Tap to upload</span>
+                  </div>
+                )}
+
+                {/* Spinner when recognizing face */}
+                {processingPhoto && (
+                  <div className="absolute inset-0 z-10 bg-black/50 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[var(--viro-primary)] animate-spin" />
                   </div>
                 )}
               </button>

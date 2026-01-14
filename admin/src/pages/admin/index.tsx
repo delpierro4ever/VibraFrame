@@ -4,6 +4,8 @@ import Link from "next/link";
 import type { GetServerSideProps, NextApiRequest } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 
+import { normalizeStoragePath } from "@/lib/storagePath"; // Import helper
+
 import type { Template } from "@/types/template";
 
 type EventRow = {
@@ -48,33 +50,44 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   // 2. Collect background paths
   const paths: string[] = [];
   events.forEach((e) => {
-    const url = e.template?.background?.url;
-    if (typeof url === "string" && url.length > 0) {
-      paths.push(url);
+    const raw = e.template?.background?.url;
+    const clean = normalizeStoragePath(raw);
+    if (clean) {
+      paths.push(clean);
     }
   });
 
   // 3. Create signed URLs (batch)
   if (paths.length > 0) {
-    const { data: signedData } = await supabase.storage
+    // Unique paths only
+    const uniquePaths = Array.from(new Set(paths));
+
+    const { data: signedData, error: signErr } = await supabase.storage
       .from("vf-event-assets")
-      .createSignedUrls(paths, 3600); // 1 hour link
+      .createSignedUrls(uniquePaths, 3600); // 1 hour link
+
+    if (signErr) {
+      console.error("Error signing URLs:", signErr);
+    }
 
     if (signedData) {
       // correctly map path -> signedUrl
-      // createSignedUrls returns { error, path, signedUrl }[]
       const map = new Map<string, string>();
       signedData.forEach((item) => {
         if (item.path && item.signedUrl) {
           map.set(item.path, item.signedUrl);
         }
+        if (item.error) {
+          console.error("Failed to sign item:", item.path, item.error);
+        }
       });
 
       // assign back to events
       events.forEach((e) => {
-        const url = e.template?.background?.url;
-        if (url && map.has(url)) {
-          e.backgroundUrl = map.get(url)!;
+        const raw = e.template?.background?.url;
+        const clean = normalizeStoragePath(raw);
+        if (clean && map.has(clean)) {
+          e.backgroundUrl = map.get(clean)!;
         }
       });
     }

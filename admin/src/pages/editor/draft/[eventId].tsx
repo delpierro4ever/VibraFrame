@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState, useMemo } from "react";
 import ResizableCircle from "../../editor/ResizableCircle"; // Keep original path for ResizableCircle
 import { supabaseBrowser } from "@/lib/supabase/client"; // Add supabaseBrowser import
+import { normalizeStoragePath } from "@/lib/storagePath"; // Add helper import
 import type { Template } from "@/types/template"; // Keep type import for Template
 import Draggable from "react-draggable";
 
@@ -258,12 +259,19 @@ export default function DraftEditor() {
       if (t) {
         // Restore state from template
         if (t.background?.url) {
-          setBgPath(t.background.url);
-          // We need a signed URL for the preview to work
-          const { data: signed } = await supabase.storage
-            .from("vf-event-assets")
-            .createSignedUrl(t.background.url, 3600);
-          if (signed?.signedUrl) setBgPreviewUrl(signed.signedUrl);
+          const raw = t.background.url;
+          const clean = normalizeStoragePath(raw);
+          setBgPath(clean || raw);
+
+          if (clean) {
+            // We need a signed URL for the preview to work
+            const { data: signed, error: signErr } = await supabase.storage
+              .from("vf-event-assets")
+              .createSignedUrl(clean, 3600);
+
+            if (signErr) console.error("Error signing background:", signErr);
+            if (signed?.signedUrl) setBgPreviewUrl(signed.signedUrl);
+          }
         }
 
         // Restore dimensions (converting normalized back to pixels if needed, though they are stored as numbers)
