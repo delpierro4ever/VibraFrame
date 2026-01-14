@@ -599,8 +599,7 @@ export default function DraftEditor() {
                 >
                   <div
                     ref={dragRef}
-                    className="absolute w-[280px] px-4 py-3 bg-black/35 backdrop-blur-sm cursor-move
-                      border border-[var(--viro-primary)] font-semibold rounded-xl text-center"
+                    className="absolute w-[280px] px-4 py-3 cursor-move font-semibold text-center hover:bg-white/5 transition-colors rounded-xl"
                     style={{ fontSize: `${fontSize * 0.4}px`, color: textColor }}
                   >
                     {namePlaceholder || "YOUR NAME"}

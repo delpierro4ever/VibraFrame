@@ -41,7 +41,7 @@ function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
 }
 
-// Modified coverDraw to support focus point
+// Modified coverDraw to support focus point and alignment
 function coverDraw(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -49,7 +49,8 @@ function coverDraw(
   dy: number,
   dw: number,
   dh: number,
-  focus?: { x: number; y: number }
+  focus?: { x: number; y: number },
+  align: { x: number; y: number } = { x: 0.5, y: 0.5 }
 ) {
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
@@ -63,10 +64,10 @@ function coverDraw(
   const fx = focus?.x ?? 0.5;
   const fy = focus?.y ?? 0.5;
 
-  // Calculate source x/y based on focus point
-  // We want the focus point (fx * iw) to be at the center of the crop (sw / 2)
-  let sx = (iw * fx) - (sw / 2);
-  let sy = (ih * fy) - (sh / 2);
+  // Calculate source x/y based on focus point and desired alignment
+  // We want source point (fx * iw) to be at destination relative point (align.x * sw)
+  let sx = (iw * fx) - (sw * align.x);
+  let sy = (ih * fy) - (sh * align.y);
 
   // Clamp to ensure we don't go outside image bounds
   sx = Math.max(0, Math.min(iw - sw, sx));
